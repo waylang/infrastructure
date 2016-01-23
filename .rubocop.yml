@@ -1,0 +1,5 @@
+# This file is managed by chef, changes will be overwritten
+
+# Max line length is 90
+Metrics/LineLength:
+  Max: 90

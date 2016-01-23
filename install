@@ -1,0 +1,267 @@
+#! /bin/bash
+
+# Bootstrap a new Way repo.  Run this in a new repo directory on the OS host.
+
+# This script can be run without vagrant or tags for testing purposes, but
+# DO NOT RUN IT OUTSIDE OF VAGRANT OR TRAVIS IN THIS WAY as it will fire up a sudo'd
+# chef client.
+
+# To enable test mode, set the TEST environment variable and run it by name:
+# TEST=true ~/infrastructure/install
+
+# The script makes a work directory in $TMPDIR or /tmp, named infrastructure-install.XXXX
+# By default it is removed on exit, but for debugging it can be kept by setting KEEP:
+# TEST=true KEEP=true ~/infrastructure/install
+
+# Fail on error
+set -e
+
+# A little color can really spruce up that dreary log spam
+function green {
+  if [[ -z "$NO_COLOR" ]]
+  then
+    echo -e "\033[1;32m$@\033[0m"
+  else
+    echo "$@"
+  fi
+}
+
+function red {
+  if [[ -z "$NO_COLOR" ]]
+  then
+    echo -e "\033[1;31m$@\033[0m"
+  else
+    echo "$@"
+  fi
+}
+
+# Report an error to stderr and exit abnormally.
+function error {
+  red Error: "$@" >&2
+  false
+}
+
+# We need git and either a vagrant or a chefdk for test
+which git >/dev/null || error 'git is not available'
+
+if [[ -z "$TEST" ]]
+then
+  which vagrant >/dev/null || error 'vagrant is not available'
+else
+  which ruby >/dev/null || error 'ruby is not available'
+fi
+
+# A directory to hold generated files. An inherited value is used by the exec trampoline
+if [[ -z "$INSTALL_WORK_DIR" ]]
+then
+  export INSTALL_WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}"/infrastructure-install-XXXX)
+fi
+
+# Keep the original location of this script for testing
+if [[ -z "$ORIGINAL_INSTALL_LOCATION" ]] && [[ -n "$TEST" ]]
+then
+  export ORIGINAL_INSTALL_LOCATION="${BASH_SOURCE[0]}"
+fi
+
+if [[ -z "$KEEP" ]]
+then
+  # Clean it up on exit
+  trap "sudo rm -rf \"$INSTALL_WORK_DIR\"" EXIT
+fi
+
+# The generated project name is taken from the current directory
+export PROJECT_NAME=$(basename $(pwd))
+
+# Run a heredoc as ruby.
+#
+# In live use this runs within vagrant's embedded ruby install.
+# During test it's just the host's ruby.
+function ruby_stdin {
+  local ruby_path
+  local ruby_file
+
+  ruby_path=$(mktemp "$INSTALL_WORK_DIR/ruby.rb.XXXX")
+  ruby_file=$(basename "$ruby_path")
+
+  # This consumes the function's stdin
+  cat > "$ruby_path"
+
+  if [[ -z "$TEST" ]]
+  then
+    # Point vagrant at it and run
+    VAGRANT_CWD="$INSTALL_WORK_DIR" VAGRANT_VAGRANTFILE="$ruby_file" vagrant status
+  else
+    # Use the ruby in chefdk
+    ruby "$ruby_path"
+  fi
+}
+
+# Fetch the latest release (or this one for testing), unless we already have
+if [[ "$0" != "$INSTALL_WORK_DIR/install" ]]
+then
+  ruby_stdin <<RUBY
+begin
+  require 'net/http'
+  require 'json'
+
+  # HTTP GET available in both vagrant and chefdk that follows redirects
+  def http_get(uri)
+    loop do
+      res = Net::HTTP.get_response(URI(uri))
+      if res.code =~ /^3/
+        uri = res['Location']
+      else
+        return res.body
+      end
+    end
+  end
+
+  if ENV['TEST']
+    tag_name = 'test'
+    install_script = File.read('${BASH_SOURCE[0]}')
+  else
+    # Where we can find metadata on the latest infrastructure release
+    RELEASE_API_URL='https://api.github.com/repos/waylang/infrastructure/releases/latest'
+
+    # JSON description of the latest release
+    json_body = JSON.parse(http_get(RELEASE_API_URL))
+
+    # The git tag for this release
+    tag_name = json_body.fetch('tag_name')
+
+    # The download (asset) url for this script within the release
+    install_script_url = json_body.fetch('assets')
+      .select { |asset| asset.fetch('name') == 'install' }
+      .map { |asset| asset.fetch('browser_download_url') }
+      .first
+
+    raise 'No install script found in latest release' unless install_script_url
+
+    # Get the script body
+    install_script = http_get(install_script_url)
+  end
+
+  # Write the release version tag to INSTALL_WORK_DIR/tag_name
+  File.open("#{ENV['INSTALL_WORK_DIR']}/tag_name", 'w') { |f| f.write(tag_name) }
+
+  # Write the script to INSTALL_WORK_DIR/install
+  File.open("#{ENV['INSTALL_WORK_DIR']}/install", 'w') { |f| f.write(install_script) }
+rescue => e
+  warn "Error: Could not retrieve install script from latest release (#{e})"
+  exit 1
+else
+  exit 0
+end
+RUBY
+
+  # Execute the latest release version of this script
+  chmod +x "$INSTALL_WORK_DIR/install"
+
+  [[ -z "$TEST" ]] && exec "$INSTALL_WORK_DIR/install"
+  # exec "$INSTALL_WORK_DIR/install"
+fi
+
+# We're now running the latest release version of this script.
+tag_name="$(< "$INSTALL_WORK_DIR/tag_name")"
+
+green "Installing infrastructure $tag_name into $PROJECT_NAME"
+
+git init
+mkdir -p {spec,recipes,vendor}
+
+if [[ -z "$TEST" ]]
+then
+  # Vendor in the latest release version of infrastructure
+  ssh -T -o StrictHostKeyChecking=no git@github.com </dev/null || true
+  git submodule add git@github.com:waylang/infrastructure.git vendor/infrastructure
+  git submodule init
+  git submodule update
+  (cd vendor/infrastructure; git checkout "$tag_name")
+  git add vendor/infrastructure
+else
+  ln -s $(cd $(dirname "$ORIGINAL_INSTALL_LOCATION") && pwd) vendor/infrastructure
+fi
+
+# Render just enough of the the included templates to bootstrap into chef properly
+ruby_stdin <<'RUBY'
+begin
+  require 'erubis'
+
+  # The project name
+  PROJECT_NAME = ENV['PROJECT_NAME']
+
+  # The relative location of the templates
+  TEMPLATES = 'vendor/infrastructure/templates/default/'
+
+  def render(template, output, context = {})
+    template_path = TEMPLATES + template
+    template = File.read(template_path)
+    rendered = Erubis::Eruby.new(template).evaluate(context)
+    File.open(output, 'w') { |f| f.write rendered }
+  end
+
+  render 'vagrant/Vagrantfile.erb', 'Vagrantfile', name: PROJECT_NAME
+  render 'vagrant/Berksfile.erb', 'Berksfile'
+  render 'vagrant/version.erb', 'version'
+  render 'vagrant/metadata.rb.erb', 'metadata.rb', name: PROJECT_NAME
+  render 'vagrant/chefignore.erb', 'chefignore'
+  render 'vagrant/recipes/vagrant.rb.erb', 'recipes/vagrant.rb'
+rescue => e
+  warn "Error: Could not bootstrap vagrant (#{e})"
+  exit 1
+else
+  exit 0
+end
+RUBY
+
+if [[ -z "$TEST" ]]
+then
+  # Fire up the real vagrant to generate the rest
+  vagrant up --no-color
+else
+  chef_solo_dir="$INSTALL_WORK_DIR/chef-solo"
+  mkdir -p "$chef_solo_dir"/{cache,backup,cookbooks}
+  berks vendor -b Berksfile "$chef_solo_dir/cookbooks"
+
+  cat > "$chef_solo_dir/config.rb" <<EOF
+node_name "install-$$"
+file_cache_path "$chef_solo_dir/cache"
+file_backup_path "$chef_solo_dir/backup"
+cookbook_path ["$chef_solo_dir/cookbooks"]
+EOF
+
+  if [[ -z "$TRAVIS" ]]
+  then
+    project_user=vagrant
+  else
+    project_user=travis
+  fi
+
+  cat > "$chef_solo_dir/attributes.json" <<EOF
+{
+  "infrastructure": {
+    "project_name": "$(basename $(pwd))",
+    "project_user": "$project_user",
+    "project_root": "$(pwd)"
+  },
+  "run_list": [
+    "recipe[$PROJECT_NAME::vagrant]"
+  ]
+}
+EOF
+
+  # Fire the chef client locally
+  sudo chef-solo \
+    --force-logger --logfile /dev/null \
+    --config "$chef_solo_dir/config.rb" \
+    --json-attributes "$chef_solo_dir/attributes.json"
+fi
+
+# Add the generated files to the git staging area.
+git add -A
+
+echo
+green "Successfully generated $PROJECT_NAME with infrastructure $tag_name."
+echo
+green "I've staged the generated code but not committed it."
+green "I also left the vagrant instance running, 'vagrant halt' to turn it off."

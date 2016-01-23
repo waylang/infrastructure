@@ -1,0 +1,26 @@
+sudo: true
+language: ruby
+addons:
+  apt:
+    sources:
+    - chef-current-precise
+    packages:
+    - chefdk
+before_install:
+- |
+  eval "$(/opt/chefdk/bin/chef shell-init bash)"
+  which ruby
+  ruby --version
+  which bundle
+  bundle --version
+  which gem
+  gem --version
+deploy:
+  provider: releases
+  api_key:
+    # travis encrypt $API_KEY --add deploy.api_key
+    secure: Fwtdzg8FEbw8w/sxCLmNeJwzeDDUCzSLzBD1koDtELmgAmLGYatHnheGMotBEx6fF9mY55rw0JfSkyILaA1sXVAHE5NrFNAo/yUsp77KxaLLUFWSFvruDIHzfQO4fBUxtbSNW6nqLuJafs3WwS3lEYm+7f/OA5jqUMPkBAviQzd5R8OabDAbSujRS3sWzYj3/4UP8GzsrJDyMkUmV/4pn52Hgcq1VKSF0WDKsesOauNUszrP4BqrgNrzKxpuC5l7wworSEIiAZiImYeLO0ZFreXo6uwVAeYC552bek5Kqcoqgpz+fAp/JSQg1gcRGSRaGTCNVacCGQGKqqdwW04J6v9ToHwjGeE+kNi8WoLcSHg2KijlAUmlatxVJjoCEVA0HgDb12RHSRxTViTA84oxRrKaNmGMKmMV48JbbCdlPfHmBatpZVc4rDOIhgBg7LjRnoIvThJYZPIDba4DfF8NSpRNiQU5KmLW74Owm2SJvC1Spg/fSthe+N8V/I8X7kBl6DRoNsrnEhTb7gvDrJUjSRafdFwN5qU38MOEcYsqDXgEipW3w7eWIcuCxzIjHOyaXumy0TLbWa7s1sOPsjB1HW6CuwmwNvk8zyfpbrgZ0rdxqdTKjwmZraJXP7Nl1s3SaUalSzU0Vld/KEjQ5G0xXrkhqpwJcCHaNoNcoobRkQE=
+  file: install
+  skip_cleanup: true
+  on:
+    tags: true

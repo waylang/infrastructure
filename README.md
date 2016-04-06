@@ -1,3 +1,8 @@
+[![Build Status][build-status-badge]][build-status-link]
+
+[build-status-badge]: https://travis-ci.org/waylang/infrastructure.svg?branch=master
+[build-status-link]: https://travis-ci.org/waylang/infrastructure
+
 # Infrastructure
 Cross-repository Services
 

@@ -178,7 +178,7 @@ if [[ -z "$TEST" ]]
 then
   # Vendor in the latest release version of infrastructure
   ssh -T -o StrictHostKeyChecking=no git@github.com </dev/null || true
-  git submodule add git@github.com:waylang/infrastructure.git vendor/infrastructure
+  git submodule add https://github.com/waylang/infrastructure.git vendor/infrastructure
   git submodule init
   git submodule update
   (cd vendor/infrastructure; git checkout "$tag_name")

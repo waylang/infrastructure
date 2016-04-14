@@ -79,3 +79,7 @@ end
 describe file 'spec/spec_helper.rb' do
   it { should exist }
 end
+
+describe file '.gitmodules' do
+  its(:content) { should_not include 'git@github.com' }
+end

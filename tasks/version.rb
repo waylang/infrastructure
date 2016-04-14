@@ -1,8 +1,6 @@
+require 'colorize'
 require 'English'
 require 'pathname'
-
-gem 'colorize'
-require 'colorize'
 
 namespace :version do
   def ensure_clean_workspace

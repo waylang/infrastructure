@@ -1,6 +1,5 @@
 require 'colorize'
 require 'English'
-require 'pathname'
 
 namespace :version do
   def ensure_clean_workspace
@@ -24,7 +23,7 @@ namespace :version do
   end
 
   def write_new_version(component_to_bump)
-    version_file = Pathname.new(__FILE__).parent.parent + 'version'
+    version_file = './version'
     old_version = File.read(version_file).strip
     new_version = calculate_new_version old_version, component_to_bump
     File.open(version_file, 'w') { |f| f.write("#{new_version}\n") }

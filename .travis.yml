@@ -1,9 +1,10 @@
 sudo: true
+dist: trusty
 language: ruby
 addons:
   apt:
     sources:
-    - chef-current-precise
+    - chef-current-trusty
     packages:
     - chefdk
 before_install:
@@ -15,6 +16,8 @@ before_install:
   bundle --version
   which gem
   gem --version
+  scripts/travis/before-install
+install: scripts/travis/install
 deploy:
   provider: releases
   api_key:

@@ -10,6 +10,8 @@ Vagrant.configure('2') do |config|
   config.vm.hostname = 'metatheory'
   config.ssh.forward_agent = true
 
+  config.vm.network 'forwarded_port', guest: 80, host: 80
+
   %w(vmware_fusion vmware_workstation).each do |vmware|
     config.vm.provider vmware do |provider, override|
       provider.name = 'metatheory'

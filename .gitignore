@@ -1,5 +1,9 @@
 .vagrant
 
+# Coq
+*.glob
+*.vo
+
 # Bundler
 .bundle/*
 bin/*

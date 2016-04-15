@@ -1,0 +1,23 @@
+#! /bin/bash
+
+mkdir -p /tmp/chef-solo/{cache,backup,cookbooks}
+berks vendor -b Berksfile /tmp/chef-solo/cookbooks
+
+cat > /tmp/chef-solo/config.rb <<'EOF'
+node_name 'travis'
+file_cache_path '/tmp/chef-solo/cache'
+file_backup_path '/tmp/chef-solo/backup'
+cookbook_path ['/tmp/chef-solo/cookbooks']
+EOF
+
+cat > /tmp/chef-solo/attributes.json <<EOF
+{
+  "infrastructure": {
+    "project_root": "$TRAVIS_BUILD_DIR",
+    "project_user": "travis"
+  },
+  "run_list": [
+    "recipe[metatheory::travis]"
+  ]
+}
+EOF

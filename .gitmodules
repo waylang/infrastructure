@@ -1,0 +1,3 @@
+[submodule "vendor/infrastructure"]
+	path = vendor/infrastructure
+	url = https://github.com/waylang/infrastructure.git

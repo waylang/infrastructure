@@ -23,7 +23,7 @@ deploy:
   api_key:
     # travis encrypt $API_KEY --add deploy.api_key
     secure: FCppLoNwAEMxxk71KAKGcFd1/e3XSBTFL4zdpnQkWv0+JW5EDoIPkECbeaTbK2p1HYFVqKTPzPF27gVK2iVYHppt8FctWSudMyM2QEBBiPPgBWsItsVqG7BzwDrL8PFZK0bka9+t4oJ8dquMIw7G6Vj38a05R784g4vqjf+tt6rXSCtZ0HyquGUnIxgJtzMieAJ6g2uYZT3mf+uFBnCLemoTddzjmWB/06zn0smGPr1n4mPXYIMa9aKcnPUz1hpNl1pHGsp30qSX0nIhtYMbhkdMKginkUfqYXMIdrHyNkxV9nYvcNqtAtEXzMAfF5EW7H9UcKhD49+VrQGThV44tytybNN8Ts5ntjgrU1mxgSgRXMcTLNrDJ4DRvaEyLW0BxQO4E3LUSYZ+wLcCdJi5rVGb/yPexp5mQHuSRelGqNfwMXwInjEPeE+DUyl+vXgeSYizKJIL9e1uxY7PqfQoaDYzIIdx6sWyMQ37VHrgER2+ioteJHtx/qcr8dXhIPgFcFkumJJxS+9qo/7RhWNWNTLnjV2WuPT5MQ/v3LfbOWbMgQuNrQJz2snVRGCGjX3xSHoDTfSDiZ01c7BWbPiLjShTNaol6XdmuTRRRANx309vgtkzULp/Eolc3pidIY/fMHUyjXW0Qf9xZAGgmMPrnel2MgnrpB56XnB0Clg1nys=
-  file: install
+  file: build/way-the-definitive-guide.pdf
   skip_cleanup: true
   on:
     tags: true

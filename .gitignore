@@ -1,5 +1,8 @@
 .vagrant
 
+# Build intermediates
+build
+
 # Bundler
 .bundle/*
 bin/*

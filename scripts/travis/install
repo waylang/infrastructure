@@ -1,0 +1,6 @@
+#! /bin/bash
+
+sudo chef-solo \
+  --force-logger --logfile /dev/null \
+  --config "/tmp/chef-solo/config.rb" \
+  --json-attributes "/tmp/chef-solo/attributes.json"

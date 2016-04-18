@@ -12,4 +12,8 @@ describe 'book::vagrant' do
   it 'includes infrastructure::vagrant' do
     expect(chef_run).to include_recipe('infrastructure::vagrant')
   end
+
+  it 'includes common' do
+    expect(chef_run).to include_recipe('book::common')
+  end
 end

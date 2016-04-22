@@ -1,8 +1,7 @@
 Require Import Arith.
-Require Import Eqdep_dec.
-Require Import List.
 Require Import MSetInterface.
 Require Import MSetList.
+Require Import MSetFacts.
 Require Import MSetProperties.
 
 Lemma InA_iff_In :
@@ -324,8 +323,8 @@ Module AtomImpl : ATOM.
   Lemma atom_fresh_for_list :
     forall (xs : list nat), { n : nat | ~ List.In n xs }.
   Proof.
-    intros xs. destruct (nat_list_max xs) as [x H].
-    exists (S x). intros J. lapply (H (S x)). omega. trivial.
+    intros xs. destruct (nat_list_max xs) as [x H]. exists (S x).
+    intros J. lapply (H (S x)). exact (le_Sn_n x). exact J.
   Qed.
 
   Definition eq_atom_dec : forall x y : atom, {x = y} + {x <> y} :=
@@ -348,8 +347,15 @@ Module AtomProperties := MSetProperties.Properties  AtomSet.F.
 
 Notation elim_notin_singleton := AtomSetNotin.elim_notin_singleton.
 Notation elim_notin_union     := AtomSetNotin.elim_notin_union.
+
+Notation union_2              := AtomFacts.union_2.
+Notation union_3              := AtomFacts.union_3.
+
+Notation empty_union_1        := AtomProperties.empty_union_1.
+Notation empty_union_2        := AtomProperties.empty_union_2.
+Notation equal_sym            := AtomProperties.equal_sym.
 Notation not_in_union         := AtomProperties.not_in_union.
-Notation empty_iff            := AtomFacts.empty_iff.
+Notation union_assoc          := AtomProperties.union_assoc.
 
 Lemma atom_fresh_for_set : forall L : atoms, { x : atom | ~ In x L }.
 Proof.
@@ -414,61 +420,16 @@ Variable A B : Type.
 Implicit Types E F : list (atom * A).
 Implicit Types a b : A.
 
-Lemma concat_nil : forall E,
-  E ++ nil = E.
-Proof.
-  intro E. symmetry. exact (List.app_nil_end E).
-Qed.
-
 Lemma nil_concat : forall E,
   nil ++ E = E.
 Proof.
   reflexivity.
 Qed.
 
-Lemma concat_assoc : forall E F G,
-  (G ++ F) ++ E = G ++ (F ++ E).
-Proof.
-  intros E F G. exact (List.app_ass G F E).
-Qed.
-
-Lemma map_nil : forall (f : A -> B),
-  map f nil = nil.
-Proof.
-  reflexivity.
-Qed.
-
-Lemma map_single : forall (f : A -> B) y b,
-  map f [(y,b)] = [(y, f b)].
-Proof.
-  reflexivity.
-Qed.
-
-Lemma map_push : forall (f : A -> B) y b E,
-  map f ([(y,b)] ++ E) = [(y, f b)] ++ map f E.
-Proof.
-  reflexivity.
-Qed.
-
-Lemma map_concat : forall (f : A -> B) E F,
-  map f (F ++ E) = (map f F) ++ (map f E).
-Proof.
-  induction F as [|(x,a)]; simpl; congruence.
-Qed.
-
 Lemma dom_nil :
   @dom A nil = empty.
 Proof.
   reflexivity.
-Qed.
-
-Lemma dom_single : forall x a,
-  dom [(x,a)] = singleton x.
-Proof.
-  simpl. intros.
-  apply AtomSet.eq_if_Equal.
-  apply AtomProperties.empty_union_2.
-  exact empty_spec.
 Qed.
 
 Lemma dom_push : forall x a E,
@@ -483,20 +444,14 @@ Proof.
   induction F as [|(x,a) F IH]; simpl.
 
   apply AtomSet.eq_if_Equal.
-  apply AtomProperties.equal_sym.
-  apply AtomProperties.empty_union_1.
+  apply equal_sym.
+  apply empty_union_1.
   exact empty_spec.
 
   rewrite IH.
   apply AtomSet.eq_if_Equal.
-  apply AtomProperties.equal_sym.
-  exact (AtomProperties.union_assoc (singleton x) (dom F) (dom E)).
-Qed.
-
-Lemma dom_map : forall (f : A -> B) E,
-  dom (map f E) = dom E.
-Proof.
-  induction E as [|(x,a)]; simpl; congruence.
+  apply equal_sym.
+  exact (union_assoc (singleton x) (dom F) (dom E)).
 Qed.
 
 Lemma cons_concat_assoc : forall x a E F,
@@ -514,21 +469,6 @@ Lemma cons_concat : forall (A : Type) (E : list (atom * A)) x a,
   (x, a) :: E = singleton_list (x, a) ++ E.
 Proof.
   reflexivity.
-Qed.
-
-Lemma map_singleton_list : forall (A B : Type) (f : A -> B) y b,
-  map f (singleton_list (y,b)) = [(y, f b)].
-Proof.
-  reflexivity.
-Qed.
-
-Lemma dom_singleton_list : forall (A : Type) (x : atom) (a : A),
-  dom (singleton_list (x,a)) = singleton x.
-Proof.
-  simpl. intros.
-  apply AtomSet.eq_if_Equal.
-  apply AtomProperties.empty_union_2.
-  exact empty_spec.
 Qed.
 
 Section OkProperties.
@@ -610,7 +550,7 @@ Proof.
       assert (In y (singleton y))
         as H_y_in_singleton_y by exact ((proj2 (singleton_spec y y)) H_y_eq_y).
       assert (In y (union (singleton y) (dom F))) as H_y_in_y_union_dom_f
-        by exact (@AtomFacts.union_2 (singleton y) (dom F) y H_y_in_singleton_y).
+        by exact (@union_2 (singleton y) (dom F) y H_y_in_singleton_y).
       contradiction.
 
       (* Inequality *)
@@ -618,7 +558,7 @@ Proof.
 
         (* ~ In x (dom F) *)
         contradict H_x_not_in_y_or_dom_f.
-        apply AtomFacts.union_3.
+        apply union_3.
         exact H_x_not_in_y_or_dom_f.
 
       exact (IHF H_get_some_a H_x_notin_dom_f).
@@ -680,8 +620,8 @@ Proof.
   rewrite (dom_push A z b E).
 
   rewrite e.
-  apply AtomFacts.union_3.
-  apply AtomFacts.union_2.
+  apply union_3.
+  apply union_2.
   apply (proj2 (singleton_spec x x)).
   reflexivity.
 
@@ -716,10 +656,10 @@ Proof.
   destruct (@binds_concat_inv _ _ _ _ _ H) as [[H_x_notin_dom_y H_binds_E] | H_binds_y].
 
   assert (In x (dom E)) as H_x_in_dom_E by exact (IHE H_binds_E).
-  exact (@AtomFacts.union_3 (singleton y) (dom E) x H_x_in_dom_E).
+  exact (@union_3 (singleton y) (dom E) x H_x_in_dom_E).
 
   destruct (@binds_singleton_inv _ _ _ _ _ H_binds_y); subst.
-  apply AtomFacts.union_2.
+  apply union_2.
   apply (proj2 (singleton_spec y y)).
   reflexivity.
 Qed.
@@ -739,7 +679,7 @@ Proof.
   intuition.
 
   apply binds_tail. apply IHF. assumption. assumption.
-  simpl. rewrite (AtomProperties.empty_union_2 (singleton y) empty_spec).
+  simpl. rewrite (empty_union_2 (singleton y) empty_spec).
   intro H_x_notin_y.
   assert (x = y) by exact ((proj1 (singleton_spec y x)) H_x_notin_y).
   intuition.
@@ -1136,55 +1076,6 @@ Proof.
 
     (* Inequality *)
     reflexivity.
-Qed.
-
-(*
-  Substituting a closed replacement into a closed context results in a closed term.
-*)
-Lemma substitution_preserves_closure :
-  forall (free : atom)
-  (substituted context : term),
-  closed context ->
-  closed substituted ->
-  closed ((free ~> substituted) context).
-Proof.
-  intros free substituted context H_context_closed H_substituted_closed.
-  induction H_context_closed as
-    [ name
-    | stale body H_body_closed_except_stale IH_abstraction
-    | function argument H_function_closed IH_function H_argument_closed IH_argument ];
-  simpl.
-
-    (* closed_free_variable *)
-    destruct (free == name) as [ H_eq_free_name | H_neq_free_name ].
-
-      (* Equality *)
-      exact H_substituted_closed.
-
-      (* Inequality *)
-      exact (closed_free_variable name).
-
-    (* closed_abstraction *)
-    apply (closed_abstraction
-      (stale `union` singleton free) ((free ~> substituted) body)).
-    intros name H_name_not_free_or_in_stale.
-    destruct (elim_notin_union name stale (singleton free) H_name_not_free_or_in_stale)
-      as [ H_name_notin_stale H_name_singleton_free ].
-
-      (* free <> name *)
-      assert (free <> name) as H_neq_free_name.
-      apply not_eq_sym.
-      apply (elim_notin_singleton name free).
-      exact H_name_singleton_free.
-
-    rewrite (substituting_closed_term_commutes_with_opening_free_variable
-      free name substituted body H_neq_free_name H_substituted_closed).
-    exact (IH_abstraction name H_name_notin_stale).
-
-    (* closed_application *)
-    exact (closed_application
-      ((free ~> substituted) function) ((free ~> substituted) argument)
-      IH_function IH_argument).
 Qed.
 
 (*

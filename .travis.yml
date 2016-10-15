@@ -1,21 +1,8 @@
 sudo: true
 dist: trusty
-language: ruby
-addons:
-  apt:
-    sources:
-    - chef-current-trusty
-    packages:
-    - chefdk
-before_install:
-- |
-  eval "$(/opt/chefdk/bin/chef shell-init bash)"
-  which ruby
-  ruby --version
-  which bundle
-  bundle --version
-  which gem
-  gem --version
+language: c
+install: bash provisioning/travis
+script: make travis
 deploy:
   provider: releases
   api_key:

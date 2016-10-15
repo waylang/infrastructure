@@ -1,0 +1,7 @@
+#! /bin/bash
+
+set -e -u -o pipefail
+set -x
+
+. "$TRAVIS_BUILD_DIR/provisioning/client-common"
+. "$TRAVIS_BUILD_DIR/provisioning/common"

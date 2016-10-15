@@ -1,0 +1,8 @@
+.DEFAULT_GOAL := default
+SHELL := /bin/bash
+
+INFRASTRUCTURE := $(shell test -d \
+  vendor/infrastructure && echo vendor/infrastructure || echo .)
+
+infrastructure-tests:
+	bats $(INFRASTRUCTURE)/test/integration/layout.bats

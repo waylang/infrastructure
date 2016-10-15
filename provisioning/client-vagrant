@@ -1,0 +1,75 @@
+#! /bin/bash
+
+set -e -u -o pipefail
+set -x
+
+sudo apt-get update
+
+if [ -z "${TEST:-}" ]
+then
+  # Only upgrade if we're not under test.  It's expensive and brittle in CI.
+  sudo apt-get upgrade -y
+fi
+
+sudo apt-get install -y software-properties-common
+
+sudo add-apt-repository -y ppa:git-core
+sudo apt-get update
+
+. "$(dirname ${BASH_SOURCE[0]})/client-common"
+
+sudo apt-get install -y \
+  bash-completion \
+  curl \
+  dstat \
+  git \
+  iftop \
+  iotop \
+  iperf \
+  jq \
+  lsof \
+  make \
+  man-db \
+  mlocate \
+  nano \
+  strace \
+  sysstat \
+  unzip \
+  wget \
+  zip
+
+# Color prompts
+sed -i 's|#force_color|force_color|' "$HOME/.bashrc"
+
+# ~/.bashrc.d/
+mkdir -p "$HOME/.bashrc.d"
+
+if ! grep -q .bashrc.d "$HOME/.bashrc"
+then
+  cat >> "$HOME/.bashrc" <<'BASHRC'
+
+# Load ~/.bashrc.d/*
+if (shopt -s nullglob dotglob; f=(~/.bashrc.d/*); ((${#f[@]})))
+then
+  for f in ~/.bashrc.d/*
+  do
+    . "$f"
+  done
+fi
+BASHRC
+fi
+
+if [ -z "${TEST:-}" ]
+then
+  # Add project bin to PATH
+  cat > "$HOME/.bashrc.d/05-project-bin-path" <<BASH
+export PATH="\$PATH:$HOME/$PROJECT_NAME/bin"
+BASH
+fi
+
+# UTC timezone
+sudo timedatectl set-timezone UTC
+
+# Softlink to code
+[ "$PROJECT_DIR" = "$HOME/$PROJECT_NAME" ] ||
+  sudo ln -sfT "$PROJECT_DIR" "$HOME/$PROJECT_NAME"

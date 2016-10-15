@@ -1,0 +1,5 @@
+common = File.expand_path('../vendor/infrastructure/vagrant/common', __FILE__)
+load common if File.exists?(common)
+
+Vagrant.configure('2') do |config|
+end

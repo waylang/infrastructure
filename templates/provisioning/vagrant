@@ -1,0 +1,7 @@
+#! /bin/bash
+
+set -e -u -o pipefail
+set -x
+
+. "$PROJECT_DIR/vendor/infrastructure/provisioning/client-vagrant"
+. "$PROJECT_DIR/provisioning/common"

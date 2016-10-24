@@ -2,23 +2,28 @@
 
 # Bootstrap a new Way repo.  Run this in a new repo directory on the OS host.
 
-# This script can be run without vagrant or tags for testing purposes, but
-# DO NOT RUN IT OUTSIDE OF VAGRANT OR TRAVIS IN THIS WAY as it will fire up a sudo'd
-# chef client.
+# This script can be run in a "local" mode which runs provisioning in the calling host.
+# It goes without saying DO NOT RUN IT OUTSIDE OF VAGRANT OR TRAVIS IN THIS WAY.
 
-# To enable test mode, set the TEST environment variable and run it by name:
+# To enable local mode, set the LOCAL environment variable and run it by name:
+# LOCAL=true ~/infrastructure/install
+
+# There is also a test mode, which implies local.  To enable it, set TEST:
 # TEST=true ~/infrastructure/install
 
 # The script makes a work directory in $TMPDIR or /tmp, named infrastructure-install.XXXX
 # By default it is removed on exit, but for debugging it can be kept by setting KEEP:
 # TEST=true KEEP=true ~/infrastructure/install
 
-# Fail on error
-set -e
+set -e -u -o pipefail
+
+export TEST="${TEST:-}"
+export LOCAL="${LOCAL:-$TEST}"
+export KEEP="${KEEP:-}"
 
 # A little color can really spruce up that dreary log spam
 function green {
-  if [[ -z "$NO_COLOR" ]]
+  if [ -z "${NO_COLOR:-}" ]
   then
     echo -e "\033[1;32m$@\033[0m"
   else
@@ -27,7 +32,7 @@ function green {
 }
 
 function red {
-  if [[ -z "$NO_COLOR" ]]
+  if [ -z "${NO_COLOR:-}" ]
   then
     echo -e "\033[1;31m$@\033[0m"
   else
@@ -38,13 +43,13 @@ function red {
 # Report an error to stderr and exit abnormally.
 function error {
   red Error: "$@" >&2
-  false
+  exit 1
 }
 
-# We need git and either a vagrant or a chefdk for test
+# We need git and either a vagrant or a ruby
 which git >/dev/null || error 'git is not available'
 
-if [[ -z "$TEST" ]]
+if [ -z "$LOCAL" ]
 then
   which vagrant >/dev/null || error 'vagrant is not available'
 else
@@ -52,35 +57,31 @@ else
 fi
 
 # A directory to hold generated files. An inherited value is used by the exec trampoline
-if [[ -z "$INSTALL_WORK_DIR" ]]
+if [ -z "${INSTALL_WORK_DIR:-}" ]
 then
   export INSTALL_WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}"/infrastructure-install-XXXX)
 fi
 
 # Keep the original location of this script for testing
-if [[ -z "$ORIGINAL_INSTALL_LOCATION" ]] && [[ -n "$TEST" ]]
+if [ -z "${ORIGINAL_INSTALL_LOCATION:-}" ] && [ -n "$TEST" ]
 then
   export ORIGINAL_INSTALL_LOCATION="${BASH_SOURCE[0]}"
 fi
 
-if [[ -z "$KEEP" ]]
+if [ -z "$KEEP" ]
 then
   # Clean it up on exit
-  if [[ -z "$TEST" ]]
-  then
-    trap "rm -rf \"$INSTALL_WORK_DIR\"" EXIT
-  else
-    trap "sudo rm -rf \"$INSTALL_WORK_DIR\"" EXIT
-  fi
+  trap "sudo rm -rf \"$INSTALL_WORK_DIR\"" EXIT
 fi
 
 # The generated project name is taken from the current directory
-export PROJECT_NAME=$(basename $(pwd))
+export PROJECT_DIR=$(pwd)
+export PROJECT_NAME=$(basename "$PROJECT_DIR")
 
 # Run a heredoc as ruby.
 #
 # In live use this runs within vagrant's embedded ruby install.
-# During test it's just the host's ruby.
+# In local mode it's just the host's ruby.
 function ruby_stdin {
   local ruby_path
   local ruby_file
@@ -91,25 +92,25 @@ function ruby_stdin {
   # This consumes the function's stdin
   cat > "$ruby_path"
 
-  if [[ -z "$TEST" ]]
+  if [ -z "$LOCAL" ]
   then
     # Point vagrant at it and run
     VAGRANT_CWD="$INSTALL_WORK_DIR" VAGRANT_VAGRANTFILE="$ruby_file" vagrant status
   else
-    # Use the ruby in chefdk
+    # Use the local ruby
     ruby "$ruby_path"
   fi
 }
 
 # Fetch the latest release (or this one for testing), unless we already have
-if [[ "$0" != "$INSTALL_WORK_DIR/install" ]]
+if [ "$0" != "$INSTALL_WORK_DIR/install" ]
 then
   ruby_stdin <<RUBY
 begin
   require 'net/http'
   require 'json'
 
-  # HTTP GET available in both vagrant and chefdk that follows redirects
+  # HTTP GET available in base ruby that follows redirects
   def http_get(uri)
     loop do
       res = Net::HTTP.get_response(URI(uri))
@@ -121,7 +122,7 @@ begin
     end
   end
 
-  if ENV['TEST']
+  if ENV.key?('TEST') && ENV['TEST'] != ''
     tag_name = 'test'
     install_script = File.read('${BASH_SOURCE[0]}')
   else
@@ -162,8 +163,7 @@ RUBY
   # Execute the latest release version of this script
   chmod +x "$INSTALL_WORK_DIR/install"
 
-  [[ -z "$TEST" ]] && exec "$INSTALL_WORK_DIR/install"
-  # exec "$INSTALL_WORK_DIR/install"
+  [ -z "$TEST" ] && exec "$INSTALL_WORK_DIR/install"
 fi
 
 # We're now running the latest release version of this script.
@@ -172,45 +172,59 @@ tag_name="$(< "$INSTALL_WORK_DIR/tag_name")"
 green "Installing infrastructure $tag_name into $PROJECT_NAME"
 
 git init
-mkdir -p {spec,recipes,vendor}
+mkdir -p {provisioning,vendor}
 
-if [[ -z "$TEST" ]]
+if [ -n "$TEST" ]
 then
+  ln -sfT $(cd $(dirname "$ORIGINAL_INSTALL_LOCATION") && pwd) vendor/infrastructure
+else
   # Vendor in the latest release version of infrastructure
   ssh -T -o StrictHostKeyChecking=no git@github.com </dev/null || true
-  git submodule add https://github.com/waylang/infrastructure.git vendor/infrastructure
-  git submodule init
-  git submodule update
+
+  if [ ! -d vendor/infrastructure ]
+  then
+    git submodule add https://github.com/waylang/infrastructure.git vendor/infrastructure
+  fi
+
+  git submodule update --init --recursive
   (cd vendor/infrastructure; git checkout "$tag_name")
+  git submodule update --init --recursive
   git add vendor/infrastructure
-else
-  ln -s $(cd $(dirname "$ORIGINAL_INSTALL_LOCATION") && pwd) vendor/infrastructure
 fi
 
-# Render just enough of the the included templates to bootstrap into chef properly
+# Render just enough of the the included templates to bootstrap
 ruby_stdin <<'RUBY'
 begin
-  require 'erubis'
-
   # The project name
   PROJECT_NAME = ENV['PROJECT_NAME']
 
   # The relative location of the templates
-  TEMPLATES = 'vendor/infrastructure/templates/default/'
-
-  def render(template, output, context = {})
-    template_path = TEMPLATES + template
-    template = File.read(template_path)
-    rendered = Erubis::Eruby.new(template).evaluate(context)
-    File.open(output, 'w') { |f| f.write rendered }
+  if PROJECT_NAME == 'infrastructure'
+    TEMPLATES = 'templates/'
+  else
+    TEMPLATES = 'vendor/infrastructure/templates/'
   end
 
-  render 'vagrant/Vagrantfile.erb', 'Vagrantfile', name: PROJECT_NAME
-  render 'vagrant/Berksfile.erb', 'Berksfile'
-  render 'vagrant/version.erb', 'version'
-  render 'vagrant/metadata.rb.erb', 'metadata.rb', name: PROJECT_NAME
-  render 'vagrant/chefignore.erb', 'chefignore'
-  render 'vagrant/recipes/vagrant.rb.erb', 'recipes/vagrant.rb'
+  def render_if_absent(path, context = {})
+    safe = context.inject({}) do |c, pair|
+      k, v = *pair
+      k = k.to_s
+      raise ArgumentError, "#{k} is not snake case" unless k =~ /^[a-zA-Z_]+$/
+      c[k.upcase] = v
+      c
+    end
+
+    template_path = TEMPLATES + path
+    template = File.read(template_path)
+
+    pattern = Regexp.new("@(#{safe.keys.sort.join('|')})@")
+    rendered = template.gsub(pattern) { |match| safe[$1] }
+    File.open(path, 'w') { |f| f.write rendered } unless File.exist? path
+  end
+
+  render_if_absent 'Vagrantfile', project_name: PROJECT_NAME
+  render_if_absent 'provisioning/common', project_name: PROJECT_NAME
+  render_if_absent 'provisioning/vagrant', project_name: PROJECT_NAME
 rescue => e
   warn "Error: Could not bootstrap vagrant (#{e})"
   exit 1
@@ -219,47 +233,12 @@ else
 end
 RUBY
 
-if [[ -z "$TEST" ]]
+if [ -z "$LOCAL" ]
 then
   # Fire up the real vagrant to generate the rest
   vagrant up --no-color
 else
-  chef_solo_dir="$INSTALL_WORK_DIR/chef-solo"
-  mkdir -p "$chef_solo_dir"/{cache,backup,cookbooks}
-  berks vendor -b Berksfile "$chef_solo_dir/cookbooks"
-
-  cat > "$chef_solo_dir/config.rb" <<EOF
-node_name "install-$$"
-file_cache_path "$chef_solo_dir/cache"
-file_backup_path "$chef_solo_dir/backup"
-cookbook_path ["$chef_solo_dir/cookbooks"]
-EOF
-
-  if [[ -z "$TRAVIS" ]]
-  then
-    project_user=vagrant
-  else
-    project_user=travis
-  fi
-
-  cat > "$chef_solo_dir/attributes.json" <<EOF
-{
-  "infrastructure": {
-    "project_name": "$(basename $(pwd))",
-    "project_user": "$project_user",
-    "project_root": "$(pwd)"
-  },
-  "run_list": [
-    "recipe[$PROJECT_NAME::vagrant]"
-  ]
-}
-EOF
-
-  # Fire the chef client locally
-  sudo chef-solo \
-    --force-logger --logfile /dev/null \
-    --config "$chef_solo_dir/config.rb" \
-    --json-attributes "$chef_solo_dir/attributes.json"
+  bash provisioning/vagrant
 fi
 
 # Add the generated files to the git staging area.
@@ -269,4 +248,8 @@ echo
 green "Successfully generated $PROJECT_NAME with infrastructure $tag_name."
 echo
 green "I've staged the generated code but not committed it."
-green "I also left the vagrant instance running, 'vagrant halt' to turn it off."
+
+if [ -z "$LOCAL" ]
+then
+  green "I also left the vagrant instance running, 'vagrant halt' to turn it off."
+fi

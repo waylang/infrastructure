@@ -1,0 +1,74 @@
+#! /bin/bash
+
+set -e -u -o pipefail
+set -x
+
+export PROJECT_DIR="${PROJECT_DIR:-$(pwd)}"
+export PROJECT_NAME="${PROJECT_NAME:-$(basename "$PROJECT_DIR")}"
+
+cd "$PROJECT_DIR"
+
+if [ -d "$PROJECT_DIR/vendor/infrastructure" ]
+then
+  INFRASTRUCTURE="$PROJECT_DIR/vendor/infrastructure"
+  RELATIVE_INFRASTRUCTURE='vendor/infrastructure'
+else
+  INFRASTRUCTURE="$PROJECT_DIR"
+  RELATIVE_INFRASTRUCTURE='.'
+fi
+
+function die {
+  >&2 echo "$@"
+  false
+}
+
+# Render and write a file to the named path from a template.
+# Files are only written if they do not exist or if CLOBBER is set.
+function render {
+  local path
+  local template_path
+
+  path="$1"
+  shift 1
+
+  if [ -f "templates/$path" ]
+  then
+    template_path="templates/$path"
+  elif [ -f "$INFRASTRUCTURE/templates/$path" ]
+  then
+    template_path="$INFRASTRUCTURE/templates/$path"
+  else
+    die "Can't find template for $path"
+  fi
+
+  if [ "${CLOBBER:-}" == "" ] && [ -f "$path" ]
+  then
+    return 0
+  fi
+
+  if [ "$#" == '0' ]
+  then
+    cat < "$template_path" > "$path"
+  else
+    sed "$@" < "$template_path" > "$path"
+  fi
+
+  return $?
+}
+
+mkdir -p bin
+ln -sfT "$INFRASTRUCTURE/vendor/bats/bin/bats" bin/bats
+# It must be relative as bump-version expects to be called from the VM host
+ln -sfT "../$RELATIVE_INFRASTRUCTURE/src/bump-version" bin/bump-version
+mkdir -p provisioning
+render provisioning/common
+render provisioning/vagrant
+render .editorconfig
+render .gitignore
+render Makefile
+render README.md \
+  -e "s|@PROJECT_NAME@|$PROJECT_NAME|g" \
+  -e "s|@RELATIVE_INFRASTRUCTURE@|$RELATIVE_INFRASTRUCTURE|g"
+render Vagrantfile \
+  -e "s|@PROJECT_NAME@|$PROJECT_NAME|g"
+render version

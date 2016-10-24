@@ -1,0 +1,94 @@
+#! /bin/bash
+
+# Commit and tag a version bump.
+
+# This expects to run from the host, not within vagrant, in order to sign tags.
+
+set -e -u -o pipefail
+
+function die {
+  >&2 echo "$@"
+  exit 1
+}
+
+function verify_staged_clean {
+  git diff --staged --quiet || die 'There are uncommitted changes!'
+}
+
+function verify_unstaged_clean {
+  git diff --quiet || die 'There are unstaged changes!'
+}
+
+# Increment a version (dotted triple) on stdin, write to stdout.
+# The component to bump is given positionally as "major", "minor" or "patch".
+function increment_version {
+  local bumped
+  local component
+  local -a components
+  local zeroed
+
+  components=($(tr . ' ')) # consumes stdin
+  component="${1:-}"
+
+  case "$component" in
+  major)
+    bumped=0
+    ;;
+  minor)
+    bumped=1
+    ;;
+  patch)
+    bumped=2
+    ;;
+  *)
+    die "Usage: $0 major|minor|patch"
+    ;;
+  esac
+
+  components[$bumped]=$(( components[$bumped] + 1 ))
+
+  for (( zeroed = bumped + 1; zeroed < ${#components[@]}; zeroed += 1 ))
+  do
+    components[$zeroed]=0
+  done
+
+  echo ${components[@]} | tr ' ' .
+}
+
+# Stage, commit and tag ./version.
+# Die if we find unexpected dirty workspace state
+# The new tag name is passed positionally without the leading "v".
+function commit_and_tag {
+  local new_version
+
+  new_version="$1"
+
+  # Before adding version, there should be nothing staged
+  # After adding it, there should nothing unstaged
+  verify_staged_clean
+  git add version
+  verify_unstaged_clean
+
+  git commit --message "Committing version $new_version"
+  git tag --annotate --sign --message "Tagging $new_version" "v$new_version"
+}
+
+# Bump the version, commit and tag the result.
+function tag_version {
+  local new_version
+
+  # Refuse to run within vagrant
+  [ -e /vagrant ] && die 'This must be run from the host OS!'
+
+  # Refuse to run without a clean workspace
+  verify_unstaged_clean
+  verify_staged_clean
+
+  new_version=$(increment_version "$@" < version)
+  echo $new_version > version
+
+  commit_and_tag "$new_version"
+  echo "Tagged version $new_version"
+}
+
+tag_version "$@"

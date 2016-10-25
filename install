@@ -172,12 +172,18 @@ tag_name="$(< "$INSTALL_WORK_DIR/tag_name")"
 green "Installing infrastructure $tag_name into $PROJECT_NAME"
 
 git init
-mkdir -p {provisioning,vendor}
+mkdir -p provisioning
 
-if [ -n "$TEST" ]
+if [ "$PROJECT_NAME" == 'infrastructure' ]
 then
+  git submodule update --init --recursive
+elif [ -n "$TEST" ]
+then
+  mkdir -p vendor
   ln -sfT $(cd $(dirname "$ORIGINAL_INSTALL_LOCATION") && pwd) vendor/infrastructure
 else
+  mkdir -p vendor
+
   # Vendor in the latest release version of infrastructure
   ssh -T -o StrictHostKeyChecking=no git@github.com </dev/null || true
 

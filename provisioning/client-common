@@ -65,6 +65,7 @@ render provisioning/common
 render provisioning/vagrant
 render .editorconfig
 render .gitignore
+render LICENSE-1.0.md
 render Makefile
 render README.md \
   -e "s|@PROJECT_NAME@|$PROJECT_NAME|g" \

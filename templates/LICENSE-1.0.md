@@ -54,7 +54,11 @@ Later License versions may give You additional or different permissions. However
 
 ### 6. Submission of Contributions.
 
-Any Contribution intentionally submitted for inclusion in the Work by You to the Licensor shall be under the terms and conditions of this License, without any additional terms or conditions. Notwithstanding the above, nothing herein shall supersede or modify the terms of any separate license agreement you may have executed with Licensor regarding such Contributions.
+Any Contribution intentionally submitted for inclusion in the Work by You to the Licensor shall be under the terms and conditions of this License, without any additional terms or conditions.
+
+Unless You explicitly state otherwise within the first 90 days after the publication date of a later version of this License, all past Contributions intentionally submitted for inclusion in the Work by You to the Licensor and included in the Work shall be under the terms and conditions of that later version.
+
+Notwithstanding the above, nothing herein shall supersede or modify the terms of any separate license agreement you may have executed with Licensor regarding such Contributions.
 
 ### 7. Trademarks.
 

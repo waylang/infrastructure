@@ -49,6 +49,10 @@
   test ! -e .gitmodules || ! egrep -q 'git@github\.com' .gitmodules
 }
 
+@test 'LICENSE-1.0.md is a file' {
+  test -f LICENSE-1.0.md
+}
+
 @test 'Makefile is a file' {
   test -f Makefile
 }

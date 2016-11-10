@@ -57,3 +57,17 @@ This fetches the latest [github release][github-releases] of infrastructure, whi
 On the _host_ OS, use `./bin/bump-version` with `major`, `minor` or `patch` arguments to bump the given semantic version component.  This will modify the `version` file in a new commit and add a gpg-signed, annotated tag.  Neither the commit nor the tag is not automatically pushed.
 
 It is expected that the repository's CI service will trigger a build in response to pushing the tag and, if the build succeeds, release the new version using the appropriate continuous delivery process.
+
+## License
+
+Copyright (C) 2016-2016 Philip H. Smith
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.

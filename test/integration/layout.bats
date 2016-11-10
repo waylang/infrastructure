@@ -1,5 +1,17 @@
 #! /usr/bin/env bats
 
+# Copyright (C) 2016-2016 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
 @test 'bin is a directory' {
   test -d bin
 }
@@ -18,6 +30,14 @@
 
 @test 'bin/bump-version resolves' {
   test -e bin/bump-version
+}
+
+@test 'bin/check-boilerplate is a soft link' {
+  test -L bin/check-boilerplate
+}
+
+@test 'bin/check-boilerplate resolves' {
+  test -e bin/check-boilerplate
 }
 
 @test 'provisioning is a directory' {
@@ -49,8 +69,12 @@
   test ! -e .gitmodules || ! egrep -q 'git@github\.com' .gitmodules
 }
 
-@test 'LICENSE-1.0.md is a file' {
-  test -f LICENSE-1.0.md
+@test 'GPL-3 is a file' {
+  test -f GPL-3
+}
+
+@test 'LICENSE is a file' {
+  test -f LICENSE
 }
 
 @test 'Makefile is a file' {
@@ -76,4 +100,8 @@
 
 @test 'version content is dotted numeric triple' {
   egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$' version
+}
+
+@test 'files have their boilerplate' {
+  ./bin/check-boilerplate
 }

@@ -1,5 +1,17 @@
 #! /bin/bash
 
+# Copyright (C) 2016-2016 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
 set -e -u -o pipefail
 set -x
 
@@ -60,12 +72,14 @@ mkdir -p bin
 ln -sfT "$INFRASTRUCTURE/vendor/bats/bin/bats" bin/bats
 # It must be relative as bump-version expects to be called from the VM host
 ln -sfT "../$RELATIVE_INFRASTRUCTURE/src/bump-version" bin/bump-version
+ln -sfT "$INFRASTRUCTURE/src/check-boilerplate" bin/check-boilerplate
 mkdir -p provisioning
 render provisioning/common
 render provisioning/vagrant
 render .editorconfig
 render .gitignore
-render LICENSE-1.0.md
+render GPL-3
+render LICENSE
 render Makefile
 render README.md \
   -e "s|@PROJECT_NAME@|$PROJECT_NAME|g" \

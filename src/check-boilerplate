@@ -1,0 +1,50 @@
+#! /bin/bash
+
+# Scan for files that no or stale boilerplate such as copyright notices.
+
+set -e -u -o pipefail
+
+function has_copyright_notice {
+  # "C''" prevents false matches from the grep pattern itself
+  if ! grep -q 'C''opyright .* 2016-.* Philip H. Smith' "$1"
+  then
+    >&2 echo "Missing copyright notice in $1"
+    return 1
+  fi
+}
+
+function has_current_end_year {
+  if ! grep -q "C""opyright .* 2016-$(date +%Y) Philip H. Smith" "$1"
+  then
+    >&2 echo "Missing current year in copyright notice in $1"
+    return 1
+  fi
+}
+
+function has_gpl_boilerplate {
+  if ! grep -q 'under the terms of the GNU General Public License' "$1"
+  then
+    >&2 echo "Missing GPL boilerplate in $1"
+    return 1
+  fi
+}
+
+export -f has_copyright_notice
+export -f has_current_end_year
+export -f has_gpl_boilerplate
+
+! find .  \
+  -name '.git*' -prune -o \
+  -name .editorconfig -prune -o  \
+  -name .travis.yml -prune -o \
+  -name .vagrant -prune -o  \
+  -name GPL-3 -prune -o \
+  -name LICENSE -prune -o \
+  -name vendor -prune -o  \
+  -name version -prune -o \
+  -type f \
+  -exec bash -c 'has_copyright_notice "$0"' '{}' \; \
+  -exec bash -c 'has_current_end_year "$0"' '{}' \; \
+  -exec bash -c 'has_gpl_boilerplate "$0"' '{}' \;  \
+  -print 2>&1 >/dev/null  | \
+grep .

@@ -20,6 +20,14 @@
   test -e bin/bump-version
 }
 
+@test 'bin/check-boilerplate is a soft link' {
+  test -L bin/check-boilerplate
+}
+
+@test 'bin/check-boilerplate resolves' {
+  test -e bin/check-boilerplate
+}
+
 @test 'provisioning is a directory' {
   test -d provisioning
 }
@@ -49,8 +57,12 @@
   test ! -e .gitmodules || ! egrep -q 'git@github\.com' .gitmodules
 }
 
-@test 'LICENSE-1.0.md is a file' {
-  test -f LICENSE-1.0.md
+@test 'GPL-3 is a file' {
+  test -f GPL-3
+}
+
+@test 'LICENSE is a file' {
+  test -f LICENSE
 }
 
 @test 'Makefile is a file' {
@@ -76,4 +88,8 @@
 
 @test 'version content is dotted numeric triple' {
   egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$' version
+}
+
+@test 'files have their boilerplate' {
+  ./bin/check-boilerplate
 }

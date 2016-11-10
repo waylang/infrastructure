@@ -60,12 +60,14 @@ mkdir -p bin
 ln -sfT "$INFRASTRUCTURE/vendor/bats/bin/bats" bin/bats
 # It must be relative as bump-version expects to be called from the VM host
 ln -sfT "../$RELATIVE_INFRASTRUCTURE/src/bump-version" bin/bump-version
+ln -sfT "$INFRASTRUCTURE/src/check-boilerplate" bin/check-boilerplate
 mkdir -p provisioning
 render provisioning/common
 render provisioning/vagrant
 render .editorconfig
 render .gitignore
-render LICENSE-1.0.md
+render GPL-3
+render LICENSE
 render Makefile
 render README.md \
   -e "s|@PROJECT_NAME@|$PROJECT_NAME|g" \

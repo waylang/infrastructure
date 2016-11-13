@@ -86,7 +86,7 @@ fi
 if [ -z "$KEEP" ]
 then
   # Clean it up on exit
-  trap "sudo rm -rf \"$INSTALL_WORK_DIR\"" EXIT
+  trap "rm -rf \"$INSTALL_WORK_DIR\"" EXIT
 fi
 
 # The generated project name is taken from the current directory

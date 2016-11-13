@@ -120,7 +120,7 @@ function ruby_stdin {
 # Fetch the latest release (or this one for testing), unless we already have
 if [ "$0" != "$INSTALL_WORK_DIR/install" ]
 then
-  ruby_stdin <<RUBY
+  ruby_stdin <<'RUBY'
 begin
   require 'net/http'
   require 'json'
@@ -139,7 +139,7 @@ begin
 
   if ENV.key?('TEST') && ENV['TEST'] != ''
     tag_name = 'test'
-    install_script = File.read('${BASH_SOURCE[0]}')
+    install_script = File.read(ENV['ORIGINAL_INSTALL_LOCATION'])
   else
     # Where we can find metadata on the latest infrastructure release
     RELEASE_API_URL='https://api.github.com/repos/waylang/infrastructure/releases/latest'

@@ -10,6 +10,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+PROJECT_NAME = 'infrastructure'
+
 common = File.expand_path('../vagrant/common', __FILE__)
 load common if File.exists?(common)
 

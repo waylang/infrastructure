@@ -1,0 +1,1 @@
+-name *.glob -prune -o -name *.vo -prune -o

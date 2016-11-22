@@ -47,6 +47,7 @@ export -f has_gpl_boilerplate
 
 ! find .  \
   -name '.git*' -prune -o \
+  -name .check-boilerplate -prune -o \
   -name .editorconfig -prune -o  \
   -name .travis.yml -prune -o \
   -name .vagrant -prune -o  \
@@ -54,6 +55,7 @@ export -f has_gpl_boilerplate
   -name LICENSE -prune -o \
   -name vendor -prune -o  \
   -name version -prune -o \
+  $(test -f .check-boilerplate && cat .check-boilerplate) \
   -type f \
   -exec bash -c 'has_copyright_notice "$0"' '{}' \; \
   -exec bash -c 'has_current_end_year "$0"' '{}' \; \

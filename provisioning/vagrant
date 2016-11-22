@@ -1,3 +1,5 @@
+#! /bin/bash
+
 # Copyright (C) 2016-2016 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
@@ -10,11 +12,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-PROJECT_NAME = 'metatheory'
+set -e -u -o pipefail
+set -x
 
-common = File.expand_path('../vendor/infrastructure/vagrant/common', __FILE__)
-load common if File.exists?(common)
+. "$PROJECT_DIR/vendor/infrastructure/provisioning/client-vagrant"
+. "$PROJECT_DIR/provisioning/common"
 
-Vagrant.configure('2') do |config|
-  config.vm.network "forwarded_port", guest: 80, host: 8080
-end
+sudo apt-get install -y \
+  apache2
+
+# Expose the coq docs in the default virtual host
+sudo ln -sfT /usr/share/doc/coq-theories/html /var/www/html/coq

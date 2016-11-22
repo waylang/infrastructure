@@ -10,11 +10,19 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-PROJECT_NAME = 'metatheory'
+include vendor/infrastructure/make/common
 
-common = File.expand_path('../vendor/infrastructure/vagrant/common', __FILE__)
-load common if File.exists?(common)
+default: tests
 
-Vagrant.configure('2') do |config|
-  config.vm.network "forwarded_port", guest: 80, host: 8080
-end
+travis: tests
+
+compile:
+	coqtop.opt -R src '' -compile Way
+
+tests: check-metatheory infrastructure-tests
+
+check-metatheory: compile
+	coqchk.opt -R src '' Way
+
+clean:
+	find src -type f '(' -name '*.glob' -o -name '*.vo' ')' -exec rm '{}' ';'

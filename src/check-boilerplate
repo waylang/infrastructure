@@ -12,7 +12,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-# Scan for files that no or stale boilerplate such as copyright notices.
+# Scan for files that have no or stale boilerplate, such as copyright notices.
 
 set -e -u -o pipefail
 

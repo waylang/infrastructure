@@ -10,10 +10,19 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-PROJECT_NAME = 'book'
+include vendor/infrastructure/make/common
 
-common = File.expand_path('../vendor/infrastructure/vagrant/common', __FILE__)
-load common if File.exists?(common)
+default: tests build/way-the-definitive-guide.pdf
 
-Vagrant.configure('2') do |config|
-end
+travis: tests build/way-the-definitive-guide.pdf
+
+tests: infrastructure-tests
+
+build/way-the-definitive-guide.pdf:
+	# Twice to build the table of contents, http://stackoverflow.com/q/3863630/580412
+	mkdir -p build
+	pdflatex -output-directory build -jobname way-the-definitive-guide src/book.tex
+	pdflatex -output-directory build -jobname way-the-definitive-guide src/book.tex
+
+clean:
+	rm -rf build

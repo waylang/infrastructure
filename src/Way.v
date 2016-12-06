@@ -1,4 +1,7 @@
 (*
+  vim: filetype=coq
+*)
+(*
 Copyright (C) 2016-2016 Philip H. Smith
 
 This program is free software: you can redistribute it and/or modify

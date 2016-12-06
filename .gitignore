@@ -1,16 +1,41 @@
-.vagrant
-
 # Coq
 *.glob
 *.vo
 
-# Bundler
-.bundle/*
-bin/*
-Gemfile.lock
+# From infrastructure
+bin
 
-# Berks
-Berksfile.lock
+# Vagrant
+.vagrant/
 
-# Sublime Text
-*.sublime-workspace
+# Vim
+*~
+.netrwhist
+Session.vim
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+tags
+
+# Emacs
+*.elc
+*.rel
+*_archive
+*_flymake.*
+*~
+.\#*
+.cask/
+.dir-locals.el
+.org-id-locations
+.projectile
+/.emacs.desktop
+/.emacs.desktop.lock
+/auto/
+/elpa/
+/eshell/history
+/eshell/lastdir
+/server/
+\#*\#
+auto-save-list
+dist/
+flycheck_*.el
+tramp

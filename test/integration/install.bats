@@ -1,4 +1,5 @@
 #! /usr/bin/env bats
+# vim: filetype=sh
 
 # Copyright (C) 2016-2016 Philip H. Smith
 

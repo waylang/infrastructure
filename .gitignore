@@ -1,3 +1,37 @@
 # From infrastructure
-.vagrant
 bin
+
+# Vagrant
+.vagrant/
+
+# Vim
+*~
+.netrwhist
+Session.vim
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+tags
+
+# Emacs
+*.elc
+*.rel
+*_archive
+*_flymake.*
+*~
+.\#*
+.cask/
+.dir-locals.el
+.org-id-locations
+.projectile
+/.emacs.desktop
+/.emacs.desktop.lock
+/auto/
+/elpa/
+/eshell/history
+/eshell/lastdir
+/server/
+\#*\#
+auto-save-list
+dist/
+flycheck_*.el
+tramp

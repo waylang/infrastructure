@@ -43,7 +43,7 @@ export KEEP="${KEEP:-}"
 
 # A little color can really spruce up that dreary log spam
 function green {
-  if [ -z "${NO_COLOR:-}" ]
+  if [ "${NO_COLOR:-}" != 'true' ]
   then
     echo -e "\033[1;32m$@\033[0m"
   else
@@ -52,7 +52,7 @@ function green {
 }
 
 function red {
-  if [ -z "${NO_COLOR:-}" ]
+  if [ "${NO_COLOR:-}" != 'true' ]
   then
     echo -e "\033[1;31m$@\033[0m"
   else
@@ -69,11 +69,11 @@ function error {
 # We need git and either a vagrant or a ruby
 which git >/dev/null || error 'git is not available'
 
-if [ -z "$LOCAL" ]
+if [ "$LOCAL" == 'true' ]
 then
-  which vagrant >/dev/null || error 'vagrant is not available'
-else
   which ruby >/dev/null || error 'ruby is not available'
+else
+  which vagrant >/dev/null || error 'vagrant is not available'
 fi
 
 # A directory to hold generated files. An inherited value is used by the exec trampoline
@@ -82,13 +82,13 @@ then
   export INSTALL_WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}"/infrastructure-install-XXXX)
 fi
 
-# Keep the original location of this script for testing
-if [ -z "${ORIGINAL_INSTALL_LOCATION:-}" ] && [ -n "$TEST" ]
+# Keep the original location of this script for local execution
+if [ -z "${ORIGINAL_INSTALL_LOCATION:-}" ] && [ "$LOCAL" == 'true' ]
 then
   export ORIGINAL_INSTALL_LOCATION="${BASH_SOURCE[0]}"
 fi
 
-if [ -z "$KEEP" ]
+if [ "$KEEP" != 'true' ]
 then
   # Clean it up on exit
   trap "rm -rf \"$INSTALL_WORK_DIR\"" EXIT
@@ -97,6 +97,15 @@ fi
 # The generated project name is taken from the current directory
 export PROJECT_DIR=$(pwd)
 export PROJECT_NAME=$(basename "$PROJECT_DIR")
+
+if [ "$PROJECT_NAME" != 'infrastructure' ]
+then
+  export INFRASTRUCTURE="$PROJECT_DIR/vendor/infrastructure"
+  export RELATIVE_INFRASTRUCTURE='vendor/infrastructure'
+else
+  export INFRASTRUCTURE="$PROJECT_DIR"
+  export RELATIVE_INFRASTRUCTURE='.'
+fi
 
 # Run a heredoc as ruby.
 #
@@ -112,13 +121,13 @@ function ruby_stdin {
   # This consumes the function's stdin
   cat > "$ruby_path"
 
-  if [ -z "$LOCAL" ]
+  if [ "$LOCAL" == 'true' ]
   then
-    # Point vagrant at it and run
-    VAGRANT_CWD="$INSTALL_WORK_DIR" VAGRANT_VAGRANTFILE="$ruby_file" vagrant status
-  else
     # Use the local ruby
     ruby "$ruby_path"
+  else
+    # Point vagrant at it and run
+    VAGRANT_CWD="$INSTALL_WORK_DIR" VAGRANT_VAGRANTFILE="$ruby_file" vagrant status
   fi
 }
 
@@ -142,8 +151,8 @@ begin
     end
   end
 
-  if ENV.key?('TEST') && ENV['TEST'] != ''
-    tag_name = 'test'
+  if ENV['LOCAL'] == 'true'
+    tag_name = 'local'
     install_script = File.read(ENV['ORIGINAL_INSTALL_LOCATION'])
   else
     # Where we can find metadata on the latest infrastructure release
@@ -183,7 +192,7 @@ RUBY
   # Execute the latest release version of this script
   chmod +x "$INSTALL_WORK_DIR/install"
 
-  [ -z "$TEST" ] && exec "$INSTALL_WORK_DIR/install"
+  [ "$LOCAL" != 'true' ] && exec "$INSTALL_WORK_DIR/install"
 fi
 
 # We're now running the latest release version of this script.
@@ -197,11 +206,14 @@ mkdir -p provisioning
 if [ "$PROJECT_NAME" == 'infrastructure' ]
 then
   git submodule update --init --recursive
-elif [ -n "$TEST" ]
+elif [ "$TEST" == 'true' ]
 then
   mkdir -p vendor
   ln -sfT $(cd $(dirname "$ORIGINAL_INSTALL_LOCATION") && pwd) vendor/infrastructure
-else
+elif ! [ "$LOCAL" == 'true' ]
+then
+  # Local non-test runs are assumed to be in-place resets, no need to re-vendor
+
   mkdir -p vendor
 
   # Vendor in the latest release version of infrastructure
@@ -222,7 +234,9 @@ fi
 ruby_stdin <<'RUBY'
 begin
   # The project name
+  INFRASTRUCTURE = ENV['INFRASTRUCTURE']
   PROJECT_NAME = ENV['PROJECT_NAME']
+  RELATIVE_INFRASTRUCTURE = ENV['RELATIVE_INFRASTRUCTURE']
 
   # The relative location of the templates
   if PROJECT_NAME == 'infrastructure'
@@ -250,9 +264,10 @@ begin
     end
   end
 
-  render 'Vagrantfile', project_name: PROJECT_NAME
-  render 'provisioning/common', project_name: PROJECT_NAME
-  render 'provisioning/vagrant', project_name: PROJECT_NAME
+  render 'Vagrantfile', project_name: PROJECT_NAME,
+    relative_infrastructure: RELATIVE_INFRASTRUCTURE
+  render 'provisioning/common'
+  render 'provisioning/vagrant', relative_infrastructure: RELATIVE_INFRASTRUCTURE
 rescue => e
   warn "Error: Could not bootstrap vagrant (#{e})"
   exit 1
@@ -261,12 +276,12 @@ else
 end
 RUBY
 
-if [ -z "$LOCAL" ]
+if [ "$LOCAL" == 'true' ]
 then
+  bash provisioning/vagrant
+else
   # Fire up the real vagrant to generate the rest
   vagrant up --no-color
-else
-  bash provisioning/vagrant
 fi
 
 # Add the generated files to the git staging area.
@@ -277,7 +292,7 @@ green "Successfully generated $PROJECT_NAME with infrastructure $tag_name."
 echo
 green "I've staged the generated code but not committed it."
 
-if [ -z "$LOCAL" ]
+if [ "$LOCAL" != 'true' ]
 then
   green "I also left the vagrant instance running, 'vagrant halt' to turn it off."
 fi

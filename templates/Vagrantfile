@@ -13,7 +13,7 @@
 
 PROJECT_NAME = '@PROJECT_NAME@'
 
-common = File.expand_path('../vendor/infrastructure/vagrant/common', __FILE__)
+common = File.expand_path('../@RELATIVE_INFRASTRUCTURE@/vagrant/common', __FILE__)
 load common if File.exists?(common)
 
 Vagrant.configure('2') do |config|

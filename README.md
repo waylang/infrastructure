@@ -1,3 +1,7 @@
+<!--
+  vim: filetype=markdown
+-->
+
 [![Build Status][build-status-badge]][build-status-link]
 [![Ready Stories][tickets-badge]][tickets-link]
 [build-status-badge]: https://travis-ci.org/waylang/book.svg?branch=master

@@ -76,7 +76,8 @@ ln -sfT "../$RELATIVE_INFRASTRUCTURE/src/bump-version" bin/bump-version
 ln -sfT "$INFRASTRUCTURE/src/check-boilerplate" bin/check-boilerplate
 mkdir -p provisioning
 render provisioning/common
-render provisioning/vagrant
+render provisioning/vagrant \
+  -e "s|@RELATIVE_INFRASTRUCTURE@|$RELATIVE_INFRASTRUCTURE|g"
 render .editorconfig
 render .gitignore
 render GPL-3
@@ -86,5 +87,6 @@ render README.md \
   -e "s|@PROJECT_NAME@|$PROJECT_NAME|g" \
   -e "s|@RELATIVE_INFRASTRUCTURE@|$RELATIVE_INFRASTRUCTURE|g"
 render Vagrantfile \
+  -e "s|@RELATIVE_INFRASTRUCTURE@|$RELATIVE_INFRASTRUCTURE|g" \
   -e "s|@PROJECT_NAME@|$PROJECT_NAME|g"
 render version

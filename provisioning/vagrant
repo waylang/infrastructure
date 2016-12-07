@@ -1,4 +1,5 @@
 #! /bin/bash
+# vim: filetype=sh
 
 # Copyright (C) 2016-2016 Philip H. Smith
 
@@ -17,9 +18,3 @@ set -x
 
 . "$PROJECT_DIR/vendor/infrastructure/provisioning/client-vagrant"
 . "$PROJECT_DIR/provisioning/common"
-
-sudo apt-get install -y \
-  apache2
-
-# Expose the coq docs in the default virtual host
-sudo ln -sfT /usr/share/doc/coq-theories/html /var/www/html/coq

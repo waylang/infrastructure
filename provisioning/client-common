@@ -36,7 +36,7 @@ function die {
 }
 
 # Render and write a file to the named path from a template.
-# Files are only written if they do not exist or if CLOBBER is set.
+# Files are only written if they do not exist or if FORCE is true.
 function render {
   local path
   local template_path
@@ -54,7 +54,7 @@ function render {
     die "Can't find template for $path"
   fi
 
-  if [ "${CLOBBER:-}" == "" ] && [ -f "$path" ]
+  if [ "${FORCE:-}" != 'true' ] && [ -f "$path" ]
   then
     return 0
   fi

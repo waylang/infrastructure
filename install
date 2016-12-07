@@ -27,6 +27,9 @@
 # There is also a test mode, which implies local.  To enable it, set TEST:
 # TEST=true ~/infrastructure/install
 
+# By default existing files are not over-written.  To force files to be over-written, set
+# FORCE: LOCAL=true FORCE=true ~/infrastructure/install
+
 # The script makes a work directory in $TMPDIR or /tmp, named infrastructure-install.XXXX
 # By default it is removed on exit, but for debugging it can be kept by setting KEEP:
 # TEST=true KEEP=true ~/infrastructure/install
@@ -35,6 +38,7 @@ set -e -u -o pipefail
 
 export TEST="${TEST:-}"
 export LOCAL="${LOCAL:-$TEST}"
+export FORCE="${FORCE:-}"
 export KEEP="${KEEP:-}"
 
 # A little color can really spruce up that dreary log spam
@@ -227,7 +231,7 @@ begin
     TEMPLATES = 'vendor/infrastructure/templates/'
   end
 
-  def render_if_absent(path, context = {})
+  def render(path, context = {})
     safe = context.inject({}) do |c, pair|
       k, v = *pair
       k = k.to_s
@@ -241,12 +245,14 @@ begin
 
     pattern = Regexp.new("@(#{safe.keys.sort.join('|')})@")
     rendered = template.gsub(pattern) { |match| safe[$1] }
-    File.open(path, 'w') { |f| f.write rendered } unless File.exist? path
+    if !File.exist?(path) || ENV['FORCE'] == 'true'
+      File.open(path, 'w') { |f| f.write rendered }
+    end
   end
 
-  render_if_absent 'Vagrantfile', project_name: PROJECT_NAME
-  render_if_absent 'provisioning/common', project_name: PROJECT_NAME
-  render_if_absent 'provisioning/vagrant', project_name: PROJECT_NAME
+  render 'Vagrantfile', project_name: PROJECT_NAME
+  render 'provisioning/common', project_name: PROJECT_NAME
+  render 'provisioning/vagrant', project_name: PROJECT_NAME
 rescue => e
   warn "Error: Could not bootstrap vagrant (#{e})"
   exit 1

@@ -65,6 +65,7 @@ export -f has_vim_modeline
   -name vendor -prune -o  \
   -name version -prune -o \
   $(test -f .check-boilerplate && cat .check-boilerplate) \
+  -exec git check-ignore -q '{}' \; -prune -o \
   -type f \
   -exec bash -c 'has_copyright_notice "$0"' '{}' \; \
   -exec bash -c 'has_current_end_year "$0"' '{}' \; \

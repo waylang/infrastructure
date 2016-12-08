@@ -25,5 +25,8 @@ tests: check-metatheory infrastructure-tests
 check-metatheory: compile
 	coqchk.opt -R src '' Way
 
+repl:
+	rlwrap coqtop.opt -R src ''
+
 clean:
 	find src -type f '(' -name '*.glob' -o -name '*.vo' ')' -exec rm '{}' ';'

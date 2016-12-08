@@ -51,9 +51,15 @@ sudo apt-get install -y \
   sysstat \
   tmux \
   unzip \
-  vim-nox-py2 \
   wget \
   zip
+
+# vim-nox-pu2 first appears in ubuntu 16, which no CI services support.
+# (Recall this is run by install.bats).  So make it conditional.
+if apt-cache show vim-nox-py2 >/dev/null 2>&1
+then
+  sudo apt-get install -y vim-nox-py2
+fi
 
 # Color prompts
 sed -i 's|#force_color|force_color|' "$HOME/.bashrc"

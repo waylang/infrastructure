@@ -51,7 +51,7 @@ sudo apt-get install -y \
   sysstat \
   tmux \
   unzip \
-  vim \
+  vim-nox-py2 \
   wget \
   zip
 

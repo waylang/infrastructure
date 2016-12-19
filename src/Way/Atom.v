@@ -15,9 +15,28 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 *)
 
-Require Export Way.Tactics.
-Require Export Way.Nat.
-Require Export Way.List.
-Require Export Way.ListNat.
-Require Export Way.Atom.
-Require Export Way.Term.
+Require Import Way.List.
+Require Import Way.ListNat.
+Require Import Way.Nat.
+
+Module Type AtomType.
+
+  Parameter atom : Set.
+
+  Parameter fresh_atom : forall (l : list atom), {a : atom | ~ has a l}.
+
+  Parameter eq_atom_dec : forall (a b : atom), {a = b} + {a <> b}.
+
+End AtomType.
+
+Module AtomImpl : AtomType.
+
+  Definition atom := nat.
+
+  Definition fresh_atom := fresh_nat.
+
+  Definition eq_atom_dec := eq_nat_dec.
+
+End AtomImpl.
+
+Export AtomImpl.

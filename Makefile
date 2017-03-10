@@ -18,12 +18,21 @@ default: tests
 travis: tests
 
 compile:
-	coqtop.opt -R src '' -compile Way
+	coqtop.opt -I src/Way -as Way -compile Tactics
+	coqtop.opt -I src/Way -as Way -compile Nat
+	coqtop.opt -I src/Way -as Way -compile List
+	coqtop.opt -I src/Way -as Way -compile ListNat
+	coqtop.opt -I src/Way -as Way -compile Atom
+	coqtop.opt -I src/Way -as Way -compile Term
+	coqtop.opt -I src -compile Way
 
 tests: check-metatheory infrastructure-tests
 
 check-metatheory: compile
 	coqchk.opt -R src '' Way
+
+repl:
+	rlwrap -pGREEN coqtop.opt -R src '' -require Way
 
 clean:
 	find src -type f '(' -name '*.glob' -o -name '*.vo' ')' -exec rm '{}' ';'

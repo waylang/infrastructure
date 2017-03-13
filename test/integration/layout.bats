@@ -41,6 +41,14 @@
   test -e bin/check-boilerplate
 }
 
+@test 'bin/release-to-github is a soft link' {
+  test -L bin/release-to-github
+}
+
+@test 'bin/release-to-github resolves' {
+  test -e bin/release-to-github
+}
+
 @test 'provisioning is a directory' {
   test -d provisioning
 }

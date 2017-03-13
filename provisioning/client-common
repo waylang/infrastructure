@@ -74,6 +74,7 @@ ln -sfT "$INFRASTRUCTURE/vendor/bats/bin/bats" bin/bats
 # It must be relative as bump-version expects to be called from the VM host
 ln -sfT "../$RELATIVE_INFRASTRUCTURE/src/bump-version" bin/bump-version
 ln -sfT "$INFRASTRUCTURE/src/check-boilerplate" bin/check-boilerplate
+ln -sfT "$INFRASTRUCTURE/src/release-to-github" bin/release-to-github
 mkdir -p provisioning
 render provisioning/common
 render provisioning/vagrant \
@@ -90,3 +91,7 @@ render Vagrantfile \
   -e "s|@RELATIVE_INFRASTRUCTURE@|$RELATIVE_INFRASTRUCTURE|g" \
   -e "s|@PROJECT_NAME@|$PROJECT_NAME|g"
 render version
+
+sudo apt-get install -y \
+  curl \
+  jq

@@ -1,0 +1,253 @@
+#! /bin/bash
+# vim: filetype=sh
+
+# Copyright (C) 2016-2017 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# Create a release in github from an existing annotated tag
+# https://developer.github.com/v3/repos/releases/#create-a-release
+
+set -e -u -o pipefail
+
+# A little color can really spruce up that dreary log spam
+function green {
+  if [ "${NO_COLOR:-}" != 'true' ]
+  then
+    echo -e "\033[1;32m$@\033[0m"
+  else
+    echo "$@"
+  fi
+}
+
+function red {
+  if [ "${NO_COLOR:-}" != 'true' ]
+  then
+    echo -e "\033[1;31m$@\033[0m"
+  else
+    echo "$@"
+  fi
+}
+
+function help {
+  echo Usage: "$0" [options]
+  echo
+  echo Options:
+  echo '  -c, --content-type      Set the content type of the next included file'
+  echo '  -f, --file              A file to include in the release'
+  echo '  -h, --help              This message'
+  echo '  -m, --message message   The release description'
+  echo '  -o, --owner owner       The github project owner/organization'
+  echo '  -r, --repository repo   The github repository name'
+  echo '  -t, --tag tag           The git tag to release'
+  echo
+  echo Create a github release
+  echo
+  echo '* The owner, repository and tag options are required.'
+  echo '* The message option is optional, the default is the tag message.'
+  echo '* The content type and file options may be given multiple times.'
+  echo '* The content type option affects only file options after it.'
+  echo '* The default content type is application/octet-stream.'
+  echo '* The tag must be annotated and already exist on github.'
+  echo '* GITHUB_RELEASE_API_KEY must have a suitable github API key.'
+}
+
+# Report a (user) error to stderr and exit abnormally.
+function error {
+  red Error: "$@" >&2
+  help >&2
+  exit 1
+}
+
+# Report an exception to stderr and exit abnormally.
+function die {
+  red Error: "$@" >&2
+  exit 1
+}
+
+# No options implies -h
+if [ $# == 0 ]
+then
+  help
+  exit 0
+fi
+
+# Use a dirty eval injection to bail early on parse errors
+# The stderr redirection shenanigans reports errors with the error function
+eval set -- $(getopt \
+  --options c:f:hm:o:r:t: \
+  --longoptions content-type:,file:,help,message:,owner:,repository:,tag: \
+  -- "$@" \
+  2> >(ERROR="$(cat)"; [ -n "$ERROR" ] && error "$ERROR") \
+  || echo '; exit 1'
+)
+
+# Clear out any inherited state
+unset CONTENT_TYPE
+unset MESSAGE
+unset OWNER
+unset REPOSITORY
+unset TAG
+unset CONTENT_TYPES
+unset FILES
+
+CONTENT_TYPE='application/octet-stream'
+
+declare -a CONTENT_TYPES
+declare -a FILES
+
+# Parse options
+while true
+do
+  case "$1" in
+    -c|--content-type)
+      CONTENT_TYPE="$2"
+      shift 2
+      ;;
+    -f|--file)
+      if [ -z "${CONTENT_TYPE:-}" ]
+      then
+        error 'Set a content type before choosing files'
+      fi
+
+      if [ ! -r "$2" ]
+      then
+        error "Can't read $2"
+      fi
+
+      CONTENT_TYPES+=("$CONTENT_TYPE")
+      FILES+=("$2")
+
+      shift 2
+      ;;
+    -h|--help)
+      help
+      exit 0
+      ;;
+    -m|--message)
+      MESSAGE="$2"
+      shift 2
+      ;;
+    -o|--owner)
+      OWNER="$2"
+      shift 2
+      ;;
+    -r|--repository)
+      REPOSITORY="$2"
+      shift 2
+      ;;
+    -t|--tag)
+      TAG="$2"
+      shift 2
+      ;;
+    --)
+      shift 1
+      if [ $# != 0 ]
+      then
+        error Extra parameters "$@" found
+      else
+        break
+      fi
+      ;;
+  esac
+done
+
+if [ -z "${GITHUB_RELEASE_API_KEY:-}" ]
+then
+  error GITHUB_RELEASE_API_KEY not set
+fi
+
+if [ -z "${OWNER:-}" ]
+then
+  error Owner is required
+fi
+
+if [ -z "${REPOSITORY:-}" ]
+then
+  error Repository is required
+fi
+
+if [ -z "${TAG:-}" ]
+then
+  error Tag is required
+fi
+
+if [ -z "${MESSAGE:-}" ]
+then
+  MESSAGE="$(expr match "$(git tag -l -n "$TAG")" "$TAG *\(.*\)\$")"
+fi
+
+RESPONSE="$(mktemp)"
+trap 'rm "$RESPONSE"' EXIT
+
+function call {
+  STATUS_CODE=$(curl \
+    -s \
+    -X POST \
+    -H "Authorization: token $GITHUB_RELEASE_API_KEY" \
+    -o "$RESPONSE" \
+    -w '%{http_code}' \
+    --data-binary @- \
+    "$@"
+  )
+
+  if [ "$STATUS_CODE" != 201 ]
+  then
+    cat "$RESPONSE"
+    die Failed to call github "(${STATUS_CODE})"
+  fi
+}
+
+jq \
+  --null-input \
+  --arg tag "$TAG" \
+  --arg message "$MESSAGE" \
+  '{"tag_name": $tag, "name": $tag, "body": $message}' \
+| call \
+  -H 'Content-Type: application/json' \
+  "https://api.github.com/repos/${OWNER}/${REPOSITORY}/releases"
+
+echo Started release $TAG
+
+if ! UPLOAD_URL_TEMPLATE="$(jq -r .upload_url "$RESPONSE")"
+then
+  cat "$RESPONSE"
+  die Could not parse response json
+fi
+
+if [ "$UPLOAD_URL_TEMPLATE" == null ]
+then
+  cat "$RESPONSE"
+  die Response did not contain an asset upload url
+fi
+
+i=0
+while [ $i -lt ${#FILES[@]} ]
+do
+  content_type="${CONTENT_TYPES[i]}"
+  file="${FILES[i]}"
+  name="$(
+    basename "$file" | \
+    python -c 'import sys,urllib;print urllib.quote(sys.stdin.read().strip())'
+  )"
+
+  # Nobody knows how to deal with RFC 6570 URI templates, so just hack it
+  call \
+    -H "Content-Type: $content_type" \
+    "${UPLOAD_URL_TEMPLATE%\{\?*\}}?name=$name" \
+    <"$file"
+
+  echo Uploaded "$file"
+
+  i=$((i + 1))
+done
+
+green Created release $TAG

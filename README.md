@@ -14,7 +14,7 @@ The Definitive Guide
 
 ## License
 
-Copyright (C) 2016-2016 Philip H. Smith
+Copyright (C) 2016-2017 Philip H. Smith
 
 "Way: The Definitive Guide" is licensed under a [Creative Commons Attribution-ShareAlike
 4.0 International License][cc-by-sa-4.0].

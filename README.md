@@ -13,6 +13,15 @@
 # Metatheory
 Formal Specification
 
+## Bibliography
+
+* Aydemir, Chargue ́raud, Pierce et al. Engineering Formal Metatheory.  POPL, 2008.
+
+* Bruno Barras and Benjamin Werner. Coq in coq. Available from
+  http://pauillac.inria.fr/~barras/coq_work-eng.html, 1997.
+
+* TODO(phs): cic, paulin-mohring
+
 ## License
 
 Copyright (C) 2016-2017 Philip H. Smith

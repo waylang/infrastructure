@@ -20,4 +20,16 @@ Require Export Way.Nat.
 Require Export Way.List.
 Require Export Way.ListNat.
 Require Export Way.Atom.
+Require Export Way.Preterm.
+Require Export Way.Context.
+Require Export Way.FreeVariables.
+Require Export Way.StaleAtoms.
+Require Export Way.Relation.
+Require Export Way.Open.
 Require Export Way.Term.
+Require Export Way.Beta.
+Require Export Way.Conversion.
+Require Export Way.Subtyping.
+Require Export Way.Typing.
+
+Export Way.Preterm.Aliases.

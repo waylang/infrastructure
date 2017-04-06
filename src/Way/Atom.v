@@ -15,9 +15,11 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 *)
 
-Require Import Way.List.
 Require Import Way.ListNat.
 Require Import Way.Nat.
+
+(* Publish notation to clients. *)
+Require Export Way.List.
 
 Module Type AtomType.
 
@@ -40,3 +42,9 @@ Module AtomImpl : AtomType.
 End AtomImpl.
 
 Export AtomImpl.
+
+(* Syntactic sugar for cofinite quantification. *)
+Notation "'fresh' ( a : l ) , P" :=
+  (forall (a : atom), ~ has a l -> P) (at level 67, a at level 99) : way_scope.
+
+Open Scope way_scope.

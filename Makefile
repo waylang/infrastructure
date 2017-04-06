@@ -23,16 +23,26 @@ compile:
 	coqtop.opt -I src/Way -as Way -compile List
 	coqtop.opt -I src/Way -as Way -compile ListNat
 	coqtop.opt -I src/Way -as Way -compile Atom
+	coqtop.opt -I src/Way -as Way -compile Preterm
+	coqtop.opt -I src/Way -as Way -compile Context
+	coqtop.opt -I src/Way -as Way -compile FreeVariables
+	coqtop.opt -I src/Way -as Way -compile StaleAtoms
+	coqtop.opt -I src/Way -as Way -compile Relation
+	coqtop.opt -I src/Way -as Way -compile Open
 	coqtop.opt -I src/Way -as Way -compile Term
-	coqtop.opt -I src -compile Way
+	coqtop.opt -I src/Way -as Way -compile Beta
+	coqtop.opt -I src/Way -as Way -compile Conversion
+	coqtop.opt -I src/Way -as Way -compile Subtyping
+	coqtop.opt -I src/Way -as Way -compile Typing
+	coqtop.opt -I src/Way -as Way -compile Repl
 
 tests: check-metatheory infrastructure-tests
 
 check-metatheory: compile
-	coqchk.opt -R src '' Way
+	coqchk.opt -R src '' Way.Repl
 
 repl:
-	rlwrap -pGREEN coqtop.opt -R src '' -require Way
+	rlwrap -pGREEN coqtop.opt -R src '' -require Repl
 
 clean:
 	find src -type f '(' -name '*.glob' -o -name '*.vo' ')' -exec rm '{}' ';'

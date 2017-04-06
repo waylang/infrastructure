@@ -50,6 +50,18 @@ Proof.
   infer.
 Defined.
 
+Definition map {A B : Type} (f : A -> B) (l : list A) : list B :=
+  fold (fun e t => (f e) :: t) [] l.
+
+Module MapExamples.
+
+Example successor_over_triple : map S [3; 1; 4] = [4; 2; 5].
+Proof.
+  infer.
+Defined.
+
+End MapExamples.
+
 Definition has {A : Type} (a : A) (l : list A) : Prop :=
   fold (fun e acc => e = a \/ acc) False l.
 

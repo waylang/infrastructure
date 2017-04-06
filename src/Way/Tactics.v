@@ -85,17 +85,23 @@ Hint Constructors
 (* A separate hint database for our own hints. *)
 Create HintDb way discriminated.
 
+Hint Unfold
+  notT
+: way.
+
 (* Our central work-horse tactic, in the spirit of Prof. Chlipala's crush. *)
-Hint Extern 5 => simpl in * : way.
+Hint Extern 5 => progress simpl in * : way.
 Hint Extern 5 => match goal with
 | [ |- context[match ?I with _ => _ end] ] => destruct I
 end : way.
 
-Hint Extern 6 => subst : way.
+Hint Extern 6 => progress subst : way.
 Hint Extern 6 => contradiction : way.
-Hint Extern 6 => f_equal : way.
+Hint Extern 6 => progress f_equal : way.
 Hint Extern 6 => congruence : way.
 Hint Extern 6 => progress intuition idtac : way.
+
+(* Level 7 is reserved for application-specific tactics. *)
 
 Hint Extern 8 => match goal with
 | [ H : ex _ |- _ ] => destruct H
@@ -111,6 +117,7 @@ end : way.
 Hint Extern 9 => symmetry : way.
 
 Tactic Notation "infer" "from" constr_list(lemmas) :=
-  auto 5 using lemmas with nocore waycore way.
+  auto 5 using lemmas with nocore waycore way;
+  auto 20 using lemmas with nocore waycore way.
 
 Tactic Notation "infer" := infer from.

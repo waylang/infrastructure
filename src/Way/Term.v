@@ -83,9 +83,9 @@ Proof.
   unfold Preterm.Examples.omega; infer.
 Defined.
 
-Example polymorphic_identity : term (prod (type 0) (abs (bvar 0) (bvar 0))).
+Example polymorphic_identity : term Preterm.Examples.polymorphic_identity.
 Proof.
-  infer.
+  unfold Preterm.Examples.polymorphic_identity; infer.
 Defined.
 
 Example fvar_is_term : forall (a : atom), term (fvar a).

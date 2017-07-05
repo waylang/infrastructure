@@ -39,8 +39,8 @@ de Bruijn indices appearing in binder annotations (the argument types of lambdas
 products) do not range over the binder they are included in.  Indices appearing in the
 bodies of those terms do.
 
-Thus the polymorphic identity, informally (forall (x : Set), (fun (y : x), y)) becomes
-(prod (type 0) (abs (bvar 0) (bvar 0))).  Notice how the two occurrences of (bvar 0) refer
+Thus the polymorphic identity, informally (fun (x : Set) (y : x) => y) becomes
+(abs (type 0) (abs (bvar 0) (bvar 0))).  Notice how the two occurrences of (bvar 0) refer
 to different bound variables even though they appear within the same abs, due to their
 placement.
 *)
@@ -84,6 +84,6 @@ Example omega :=
     (abs (type 0) (app (bvar 0) (bvar 0)))
     (abs (type 0) (app (bvar 0) (bvar 0)))).
 
-Example polymorphic_identity := (prod (type 0) (abs (bvar 0) (bvar 0))).
+Example polymorphic_identity := (abs (type 0) (abs (bvar 0) (bvar 0))).
 
 End Examples.

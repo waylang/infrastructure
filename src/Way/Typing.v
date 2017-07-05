@@ -113,12 +113,77 @@ Module Examples.
 
 Import Aliases.
 
+(* TODO(phs): Use the type checker once it exists *)
+Example polymorphic_identity :
+  typing []
+    Preterm.Examples.polymorphic_identity
+    (prod (type 0) (prod (bvar 0) (bvar 1))).
+Proof.
+  unfold Preterm.Examples.polymorphic_identity;
+  apply (Typing.abstraction [] 1);
+  [ apply (Typing.product []);
+    [ infer
+    | intros a Ha; unfold open_free;
+      apply (Typing.subtyping (type 1) 2);
+      [ infer
+      | apply (Typing.product [a]);
+        [ apply (Typing.subtyping (type 0) 2);
+          infer from (Typing.extend 1)
+        | intros b Hb; unfold open_free;
+          apply (Typing.subtyping (type 0) 2);
+          [ infer
+          | apply Typing.free_variable;
+            [ apply (Typing.extend 0);
+              [ apply Typing.free_variable;
+                infer from (Typing.extend 1)
+              | infer
+              ]
+            | infer
+            ]
+          | apply Typing.type;
+            apply (Typing.extend 0);
+            [ apply Typing.free_variable;
+              infer from (Typing.extend 1)
+            | infer
+            ]
+          ]
+        ]
+      | infer from (Typing.extend 1)
+      ]
+    ]
+  | intros a Ha; unfold open_free;
+    apply (Typing.abstraction [a] 0);
+    [ apply (Typing.product [a]);
+      [ infer from (Typing.extend 1)
+      | intros b Hb; unfold open_free;
+        apply Typing.free_variable;
+        [ apply (Typing.extend 0);
+          [ apply Typing.free_variable;
+            infer from (Typing.extend 1)
+          | infer
+          ]
+        | infer
+        ]
+      ]
+    | intros b Hb; unfold open_free;
+      apply Typing.free_variable;
+      [ apply (Typing.extend 0);
+        [ apply Typing.free_variable;
+          infer from (Typing.extend 1)
+        | infer
+        ]
+      | infer
+      ]
+    ]
+  ].
+Defined.
+
 (* TODO(phs): Demonstrate polymorphic identity application *)
 (* You chose type 0 in the definition of the identity.  This is tricky without base types
 or the polymorphism allowing us to elide universe indices.
-Example polymorphic_identity :
+Example apply_polymorphic_identity :
   typing []
-    (app Preterm.Example.polymorphic_identity (abs (type 0) (bvar 0)))
+    (app Preterm.Examples.polymorphic_identity (abs (type 0) (bvar 0)))
     (prod (type 0) (type 0))
 *)
 

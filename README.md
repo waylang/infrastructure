@@ -65,7 +65,7 @@ It is expected that the repository's CI service will trigger a build in response
 
 ## License
 
-Copyright (C) 2016-2017 Philip H. Smith
+Copyright (C) 2016-2018 Philip H. Smith
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

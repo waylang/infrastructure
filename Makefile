@@ -11,13 +11,15 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-include make/common
+SHELL := /bin/bash
 
-default: tests
+.PHONY: all
+all:
 
-travis: tests
+.PHONY: test
+test: all
 
-tests: integration
+.PHONY: continuous-integration
+continuous-integration: test
 
-integration:
-	bats test/integration
+include */build.mk

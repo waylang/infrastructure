@@ -17,20 +17,13 @@ set -e -u -o pipefail
 set -x
 
 sudo apt-get update
-
-if [ -z "${TEST:-}" ]
-then
-  # Only upgrade if we're not under test.  It's expensive and brittle in CI.
-  sudo apt-get upgrade -y
-fi
+sudo apt-get upgrade -y
 
 sudo apt-get install -y software-properties-common
-
-sudo add-apt-repository -y ppa:brightbox/ruby-ng
 sudo add-apt-repository -y ppa:git-core
 sudo apt-get update
 
-. "$(dirname ${BASH_SOURCE[0]})/client-common"
+. '/vagrant/infrastructure/provisioning/common'
 
 sudo apt-get install -y \
   bash-completion \
@@ -45,54 +38,19 @@ sudo apt-get install -y \
   man-db \
   mlocate \
   nano \
-  ruby2.2 \
-  ruby2.2-dev \
   strace \
   sysstat \
   tmux \
   unzip \
+  vim-nox-py2 \
   wget \
   zip
 
-# vim-nox-pu2 first appears in ubuntu 16, which no CI services support.
-# (Recall this is run by install.bats).  So make it conditional.
-if apt-cache show vim-nox-py2 >/dev/null 2>&1
-then
-  sudo apt-get install -y vim-nox-py2
-fi
-
 # Color prompts
 sed -i 's|#force_color|force_color|' "$HOME/.bashrc"
-
-# ~/.bashrc.d/
-mkdir -p "$HOME/.bashrc.d"
-
-if ! grep -q .bashrc.d "$HOME/.bashrc"
-then
-  cat >> "$HOME/.bashrc" <<'BASHRC'
-
-# Load ~/.bashrc.d/*
-if (shopt -s nullglob dotglob; f=(~/.bashrc.d/*); ((${#f[@]})))
-then
-  for f in ~/.bashrc.d/*
-  do
-    . "$f"
-  done
-fi
-BASHRC
-fi
-
-if [ -z "${TEST:-}" ]
-then
-  # Add project bin to PATH
-  cat > "$HOME/.bashrc.d/05-project-bin-path" <<BASH
-export PATH="\$PATH:$HOME/$PROJECT_NAME/bin"
-BASH
-fi
 
 # UTC timezone
 sudo timedatectl set-timezone UTC
 
 # Softlink to code
-[ "$PROJECT_DIR" = "$HOME/$PROJECT_NAME" ] ||
-  sudo ln -sfT "$PROJECT_DIR" "$HOME/$PROJECT_NAME"
+sudo ln -sfT /vagrant "$HOME/way"

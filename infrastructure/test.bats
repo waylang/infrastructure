@@ -13,29 +13,35 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-function setup {
-  export ROOT=$(pwd)
-  export EXAMPLE_PROJECT=$(mktemp --tmpdir -d example-project-XXXX)
-  export TEST=true
-  export SOFTLINK=~/$(basename $EXAMPLE_PROJECT)
-  cd $EXAMPLE_PROJECT
+@test 'bats is executable' {
+  type bats
 }
 
-@test 'install runs' {
-  $ROOT/install
+@test 'bump-version is executable' {
+  type bump-version
 }
 
-@test 'install stages all generated files' {
-  run $ROOT/install
-  git diff --exit-code
+@test 'check-boilerplate is executable' {
+  type check-boilerplate
 }
 
-@test 'install output passes infrastructure tests' {
-  run $ROOT/install
-  make infrastructure-tests
+@test 'release-to-github is executable' {
+  type release-to-github
 }
 
-function teardown {
-  rm -rf $EXAMPLE_PROJECT
-  test -L $SOFTLINK && rm $SOFTLINK
+@test 'version is a file' {
+  test -f version
+}
+
+@test 'version is one line' {
+  run wc -l version
+  test "$output" = '1 version'
+}
+
+@test 'version content is dotted numeric triple' {
+  egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$' version
+}
+
+@test 'files have their boilerplate' {
+  check-boilerplate
 }

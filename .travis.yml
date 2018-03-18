@@ -1,15 +1,5 @@
 sudo: true
 dist: trusty
 language: c
-env:
-  global:
-    # $ travis encrypt GITHUB_RELEASE_API_KEY=XXX
-    secure: "MLFfZCsHWVR+wBXMbivFg3EKCvCTQbwJN3GxRJ4NKRtrTf7BIEArzS8dWsvGVsgU0HUHQLqfgTvDXRsXjIosEJF+kt4V0CSkHx7sO++FQbaANkKQtDkcTasEzqN6jem846zAuG7D324Cx28wcaoASpSejfvSXmrOUPHkABmR0JDmlDU2ucUplKjnSL26w5SsLaO0/tIZTYdbBBTDW64omEyinLjHTozygoGDNOFSC19WtgaiW2IMQSiSmImOXHOJQqpPTid/zKqcLENyAAbMeLy+wlWBslv7Y+QoR8bu7ETUxoP9UFgqr7k+ZOCblw2ZjumLSyeqsk3FNspPdjeNe0Gc5W0QROGhDzOF2bFNTnVaGpaeLFNm0cq3vC9Kof+0ekQtkvexKgziwPn22ozBks/R4iQo/jWUYFgr8Lfd+Ob22BUvqpRUS6dC5WAgm1UT+H7OZaJjR6Ec+HEkUcMML2nGtLBZDDrKV2ih/ncAPmLS2YmfMZ7I19oN+UlFUKNpTyceWMFFxdORxFSUSe/NJW5IjDpLnbxNhq10zMLg89W+G1fbv+kGyTosl8IZe6/ZHPl4mV4UC2d5A9vrXedQpgNorDpN7hc4xLPALIymcksnYkov6Q+QaeKjUiJrXigaO1YK1wEocLsaHzJYcw1Fw6b7TbyiO2ib2JFN11M8OT8="
-install: bash provisioning/travis
-script: make travis
-deploy:
-  provider: script
-  script: src/release-to-github -o waylang -r infrastructure -t "$TRAVIS_TAG" -f install
-  skip_cleanup: true
-  on:
-    tags: true
+install: bash infrastructure/provisioning/travis
+script: bash -l -c 'make continuous-integration'

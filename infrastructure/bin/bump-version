@@ -1,0 +1,128 @@
+#! /bin/bash
+# vim: filetype=sh
+
+# Copyright (C) 2016-2018 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# Commit and tag a version bump.
+
+# This expects to run from the host, not within vagrant, in order to sign tags.
+
+set -e -u -o pipefail
+
+function die {
+  >&2 echo "$@"
+  exit 1
+}
+
+function verify_staged_clean {
+  git diff --staged --quiet || die 'There are uncommitted changes!'
+}
+
+function verify_unstaged_clean {
+  git diff --quiet || die 'There are unstaged changes!'
+}
+
+function verify_version_format {
+  local tag="$1"
+  local version="$2"
+  local -a parts=(${version//./ })
+
+  (( ${#parts[@]} == 3 )) || \
+    die "${tag^?} version $version is not a dotted triple"
+
+  [[ "${parts[0]}" =~ ^(0|[1-9][0-9]*)$ ]] || \
+    die "${tag^?} language version ${parts[0]} is not a version number"
+
+  [[ "${parts[1]}" =~ ^(0|[1-9][0-9]*)$ ]] || \
+    die "${tag^?} major version ${parts[1]} is not a version number"
+
+  [[ "${parts[2]}" =~ ^(rc)?(0|[1-9][0-9]*)$ ]] || \
+    die "${tag^?} minor version ${parts[2]} is not a version number or release candidate"
+}
+
+# Check that one version may succeed another.  Both are taken positionally
+function verify_successor {
+  local old_version="$1"
+  local new_version="$2"
+
+  verify_version_format current "$old_version"
+  verify_version_format proposed "$new_version"
+
+  local -a old=(${old_version//./ })
+  local -a new=(${new_version//./ })
+
+  if [[ "${new[0]}" != "${old[0]}" ]]
+  then
+    (( ${new[0]} == ${old[0]} + 1 )) || \
+      die "The next language version must be $(( ${old[0]} + 1 ))"
+
+    [[ "${new[1]}" == 0 ]] || \
+      die "New language version $new_version must have major version 0"
+
+    [[ "${new[2]}" == rc0 ]] || \
+      die "New language version $new_version must have minor version rc0"
+  elif [[ "${new[1]}" != "${old[1]}" ]]
+  then
+    (( ${new[1]} == ${old[1]} + 1 )) || \
+      die "The next major version must be $(( ${old[1]} + 1 ))"
+
+    [[ "${new[2]}" == rc0 ]] || \
+      die "New major version $new_version must have minor version rc0"
+  elif [[ "${old[2]}" =~ ^[0-9] ]]
+  then
+    (( ${new[2]} == ${old[2]} + 1 )) || \
+      die "The next minor version must be $(( ${old[2]} + 1 ))"
+  else
+    [[ "${new[2]}" == 0 ]] || \
+    [[ "${new[2]}" == "rc$(( ${old[2]#rc} + 1 ))" ]] || \
+      die "The next minor version must be 0 or rc$(( ${old[2]#rc} + 1 ))"
+  fi
+}
+
+# Stage, commit and tag ./version.
+# Die if we find unexpected dirty workspace state
+# The new tag name is passed positionally without the leading "v".
+function commit_and_tag {
+  local new_version="$1"
+
+  # Before adding version, there should be nothing staged
+  # After adding it, there should nothing unstaged
+  verify_staged_clean
+  git add version
+  verify_unstaged_clean
+
+  git commit --message "Committing version $new_version"
+  git tag --annotate --sign --message "Tagging $new_version" "v$new_version"
+}
+
+# Bump the version, commit and tag the result.
+function tag_version {
+  (( $# == 1 )) || die "Usage: $0 new-version"
+
+  local new_version="$1"
+
+  # Refuse to run within vagrant
+  [ -e /vagrant ] && die 'This must be run from the host OS!'
+
+  # Refuse to run without a clean workspace
+  verify_unstaged_clean
+  verify_staged_clean
+
+  verify_successor "$(<version)" "$new_version"
+  echo "$new_version" > version
+
+  commit_and_tag "$new_version"
+  echo "Tagged version $new_version"
+}
+
+tag_version "$@"

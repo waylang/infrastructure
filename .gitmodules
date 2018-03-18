@@ -1,3 +1,0 @@
-[submodule "vendor/bats"]
-	path = vendor/bats
-	url = https://github.com/sstephenson/bats.git

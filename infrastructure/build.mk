@@ -1,6 +1,4 @@
-#! /bin/bash
-# vim: filetype=sh
-
+# vim: filetype=make
 # Copyright (C) 2016-2018 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
@@ -13,5 +11,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-set -e -u -o pipefail
-set -x
+test: infrastructure-test
+
+.PHONY: infrastructure-test
+infrastructure-test:
+	bats infrastructure/test.bats

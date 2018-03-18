@@ -15,3 +15,5 @@
 
 set -e -u -o pipefail
 set -x
+
+. "$TRAVIS_BUILD_DIR/infrastructure/provisioning/common"

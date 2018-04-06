@@ -1,3 +1,6 @@
+# Build intermediates
+build
+
 # Vagrant
 .vagrant/
 

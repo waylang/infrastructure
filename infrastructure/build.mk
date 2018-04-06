@@ -11,7 +11,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-test: infrastructure-test
+TEST += infrastructure-test
 
 .PHONY: infrastructure-test
 infrastructure-test:

@@ -60,9 +60,9 @@ export -f has_vim_modeline
   -name .editorconfig -prune -o  \
   -name .travis.yml -prune -o \
   -name .vagrant -prune -o  \
+  -name CC-BY-SA-4.0 -prune -o \
   -name GPL-3 -prune -o \
   -name LICENSE -prune -o \
-  -name vendor -prune -o  \
   -name version -prune -o \
   $(test -f .check-boilerplate && cat .check-boilerplate) \
   -exec git check-ignore -q '{}' \; -prune -o \

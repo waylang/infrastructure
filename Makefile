@@ -11,15 +11,29 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+.DEFAULT: all
+
 SHELL := /bin/bash
 
+ALL :=
+TEST :=
+
+include */build.mk
+
 .PHONY: all
-all:
+all: $(ALL)
 
 .PHONY: test
-test: all
+test: $(TEST)
 
 .PHONY: continuous-integration
 continuous-integration: test
 
-include */build.mk
+.PHONY: clean
+clean:
+	-rm -r build
+
+build:
+	mkdir -p build
+
+$(ALL): | build

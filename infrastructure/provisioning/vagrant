@@ -1,0 +1,56 @@
+#! /bin/bash
+# vim: filetype=sh
+
+# Copyright (C) 2016-2018 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+set -e -u -o pipefail
+set -x
+
+sudo apt-get update
+sudo apt-get upgrade -y
+
+sudo apt-get install -y software-properties-common
+sudo add-apt-repository -y ppa:git-core
+sudo apt-get update
+
+. '/vagrant/infrastructure/provisioning/common'
+
+sudo apt-get install -y \
+  bash-completion \
+  build-essential \
+  dstat \
+  git \
+  iftop \
+  iotop \
+  iperf \
+  lsof \
+  make \
+  man-db \
+  mlocate \
+  nano \
+  strace \
+  sysstat \
+  tmux \
+  unzip \
+  vim-nox-py2 \
+  wget \
+  zip
+
+# Color prompts
+sed -i 's|#force_color|force_color|' "$HOME/.bashrc"
+
+# UTC timezone
+sudo timedatectl set-timezone UTC
+
+# Softlink to code
+sudo ln -sfT /vagrant "$HOME/way"

@@ -1,5 +1,5 @@
 # vim: filetype=make
-# Copyright (C) 2016-2017 Philip H. Smith
+# Copyright (C) 2016-2018 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -11,19 +11,29 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-include vendor/infrastructure/make/common
+.DEFAULT: all
 
-default: tests build/way-the-definitive-guide.pdf
+SHELL := /bin/bash
 
-travis: tests build/way-the-definitive-guide.pdf
+ALL :=
+TEST :=
 
-tests: infrastructure-tests
+include */build.mk
 
-build/way-the-definitive-guide.pdf:
-	# Twice to build the table of contents, http://stackoverflow.com/q/3863630/580412
-	mkdir -p build
-	pdflatex -output-directory build -jobname way-the-definitive-guide src/book.tex
-	pdflatex -output-directory build -jobname way-the-definitive-guide src/book.tex
+.PHONY: all
+all: $(ALL)
 
+.PHONY: test
+test: $(TEST)
+
+.PHONY: continuous-integration
+continuous-integration: test
+
+.PHONY: clean
 clean:
-	rm -rf build
+	-rm -r build
+
+build:
+	mkdir -p build
+
+$(ALL): | build

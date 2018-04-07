@@ -1,7 +1,5 @@
-#! /bin/bash
-# vim: filetype=sh
-
-# Copyright (C) 2016-2017 Philip H. Smith
+# vim: filetype=make
+# Copyright (C) 2016-2018 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,8 +11,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-set -e -u -o pipefail
-set -x
+ALL += build/way-the-definitive-guide.pdf
 
-. "$TRAVIS_BUILD_DIR/vendor/infrastructure/provisioning/client-common"
-. "$TRAVIS_BUILD_DIR/provisioning/common"
+build/way-the-definitive-guide.pdf:
+	# Twice to build the table of contents, http://stackoverflow.com/q/3863630/580412
+	pdflatex -output-directory build -jobname way-the-definitive-guide book/book.tex
+	pdflatex -output-directory build -jobname way-the-definitive-guide book/book.tex

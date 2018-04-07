@@ -1,9 +1,6 @@
 # Build intermediates
 build
 
-# From infrastructure
-bin
-
 # Vagrant
 .vagrant/
 

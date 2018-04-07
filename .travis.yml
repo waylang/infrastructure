@@ -1,8 +1,8 @@
 sudo: true
 dist: trusty
 language: c
-install: bash provisioning/travis
-script: make travis
+install: bash infrastructure/provisioning/travis
+script: bash -l -c 'make continuous-integration'
 deploy:
   provider: releases
   api_key:

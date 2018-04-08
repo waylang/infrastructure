@@ -56,7 +56,6 @@ export -f has_vim_modeline
 
 ! find .  \
   -name '.git*' -prune -o \
-  -name .check-boilerplate -prune -o \
   -name .editorconfig -prune -o  \
   -name .travis.yml -prune -o \
   -name .vagrant -prune -o  \
@@ -64,7 +63,6 @@ export -f has_vim_modeline
   -name GPL-3 -prune -o \
   -name LICENSE -prune -o \
   -name version -prune -o \
-  $(test -f .check-boilerplate && cat .check-boilerplate) \
   -exec git check-ignore -q '{}' \; -prune -o \
   -type f \
   -exec bash -c 'has_copyright_notice "$0"' '{}' \; \

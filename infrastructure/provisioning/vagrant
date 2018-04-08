@@ -38,6 +38,7 @@ sudo apt-get install -y \
   man-db \
   mlocate \
   nano \
+  rlwrap \
   strace \
   sysstat \
   tmux \

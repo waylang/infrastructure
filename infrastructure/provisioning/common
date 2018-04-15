@@ -21,6 +21,7 @@ export PROJECT_DIR="${PROJECT_DIR:-$(pwd)}"
 cd "$PROJECT_DIR"
 
 sudo apt-get install -y \
+  coq \
   curl \
   jq \
   texlive \

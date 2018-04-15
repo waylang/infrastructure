@@ -11,16 +11,16 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-.DEFAULT: all
-
 SHELL := /bin/bash
 
 ALL :=
 TEST :=
 
+.PHONY: all
+all:
+
 include */build.mk
 
-.PHONY: all
 all: $(ALL)
 
 .PHONY: test

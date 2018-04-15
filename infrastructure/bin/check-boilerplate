@@ -54,22 +54,22 @@ export -f has_current_end_year
 export -f has_gpl_boilerplate
 export -f has_vim_modeline
 
-! find .  \
-  -name '.git*' -prune -o \
-  -name .check-boilerplate -prune -o \
-  -name .editorconfig -prune -o  \
-  -name .travis.yml -prune -o \
-  -name .vagrant -prune -o  \
-  -name CC-BY-SA-4.0 -prune -o \
-  -name GPL-3 -prune -o \
-  -name LICENSE -prune -o \
-  -name version -prune -o \
-  $(test -f .check-boilerplate && cat .check-boilerplate) \
-  -exec git check-ignore -q '{}' \; -prune -o \
+! find . \
+  '(' \
+    -name '.git*' -o \
+    -name .editorconfig -o  \
+    -name .travis.yml -o \
+    -name .vagrant -o  \
+    -name CC-BY-SA-4.0 -o \
+    -name GPL-3 -o \
+    -name LICENSE -o \
+    -name version -o \
+    -exec git check-ignore -q '{}' ';' \
+  ')' -prune -o \
   -type f \
-  -exec bash -c 'has_copyright_notice "$0"' '{}' \; \
-  -exec bash -c 'has_current_end_year "$0"' '{}' \; \
-  -exec bash -c 'has_gpl_boilerplate "$0"' '{}' \;  \
-  -exec bash -c 'has_vim_modeline "$0"' '{}' \;     \
-  -print 2>&1 >/dev/null  | \
+  -exec bash -c 'has_copyright_notice "$0"' '{}' ';' \
+  -exec bash -c 'has_current_end_year "$0"' '{}' ';' \
+  -exec bash -c 'has_gpl_boilerplate "$0"' '{}' ';' \
+  -exec bash -c 'has_vim_modeline "$0"' '{}' ';' \
+  -print &> /dev/null | \
 grep .

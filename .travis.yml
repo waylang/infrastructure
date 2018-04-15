@@ -1,13 +1,14 @@
 sudo: true
 dist: trusty
 language: c
-install: bash provisioning/travis
-script: make travis
+install: bash infrastructure/provisioning/travis
+script: bash -l -c 'make continuous-integration'
 deploy:
   provider: releases
   api_key:
     # travis encrypt $API_KEY --add deploy.api_key
-    secure: tlqOJkrsvuv1RzD8/MXoEy5Mw0t/N75XuhdAKEWG/vwygL+d+OqtrkC8phdBsCc+i+xAfahcQ60DRlYE5Ppa2Z+i//4C3AGChQAzi4VbQft6jgmQu4Wbn1fq6Qr+ERBNlFCb4dsOKTKOm0nnJrw21k+jstY1l6YMs9b41R/pIjaA6+lsqgsn/IpdyZwGDZ/r4IsgkGAd/jMNbWz3Ch2bP+VUOlBSLH24fvYVwHIimPdxYmKa0/kdqsCid3LtsEgImXDUV0iifL9JkOI+dRlGe17EGCYFGW2HYHr/7sK8hrsikdopazFUiXp0id+XLnWXwswZCp1Ec9TwANjpUs64G4utooIje2JaWb8Bedht0tId3XRuAKhtwV1aTILsSscXnJDg+FD2YC4WAKG133k9Ugbg0GDxYCCioKWZ6V3tYxifriIGTXcHvBWj51GTeLl53+D1lAjYh0o0eHaUJDqwceigu3Kz4gobQlmAt4i0uQ0sJXN/7I/3Ecv79Lgo9zzuRYyHkFi30bKncGypZlkbz9/OWakLKc3e2/BfzYZ4cz5FXoaENBL5/XnHEF9l6dkoHrz+2aflNNxpU9TEyNzgxRdda/lZee0lF6SELAZevu0+JUfO7PECU7e++rcO7YQnAlqTvmm+Phl2zpNuVjBEb8iN5vAPxM8zO3tmGJHCoRU=
+    secure: FCppLoNwAEMxxk71KAKGcFd1/e3XSBTFL4zdpnQkWv0+JW5EDoIPkECbeaTbK2p1HYFVqKTPzPF27gVK2iVYHppt8FctWSudMyM2QEBBiPPgBWsItsVqG7BzwDrL8PFZK0bka9+t4oJ8dquMIw7G6Vj38a05R784g4vqjf+tt6rXSCtZ0HyquGUnIxgJtzMieAJ6g2uYZT3mf+uFBnCLemoTddzjmWB/06zn0smGPr1n4mPXYIMa9aKcnPUz1hpNl1pHGsp30qSX0nIhtYMbhkdMKginkUfqYXMIdrHyNkxV9nYvcNqtAtEXzMAfF5EW7H9UcKhD49+VrQGThV44tytybNN8Ts5ntjgrU1mxgSgRXMcTLNrDJ4DRvaEyLW0BxQO4E3LUSYZ+wLcCdJi5rVGb/yPexp5mQHuSRelGqNfwMXwInjEPeE+DUyl+vXgeSYizKJIL9e1uxY7PqfQoaDYzIIdx6sWyMQ37VHrgER2+ioteJHtx/qcr8dXhIPgFcFkumJJxS+9qo/7RhWNWNTLnjV2WuPT5MQ/v3LfbOWbMgQuNrQJz2snVRGCGjX3xSHoDTfSDiZ01c7BWbPiLjShTNaol6XdmuTRRRANx309vgtkzULp/Eolc3pidIY/fMHUyjXW0Qf9xZAGgmMPrnel2MgnrpB56XnB0Clg1nys=
+  file: build/way-the-definitive-guide.pdf
   skip_cleanup: true
   on:
     tags: true

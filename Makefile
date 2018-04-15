@@ -1,5 +1,5 @@
 # vim: filetype=make
-# Copyright (C) 2016-2017 Philip H. Smith
+# Copyright (C) 2016-2018 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -11,38 +11,29 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-include vendor/infrastructure/make/common
+SHELL := /bin/bash
 
-default: tests
+ALL :=
+TEST :=
 
-travis: tests
+.PHONY: all
+all:
 
-compile:
-	coqtop.opt -I src/Way -as Way -compile Tactics
-	coqtop.opt -I src/Way -as Way -compile Nat
-	coqtop.opt -I src/Way -as Way -compile List
-	coqtop.opt -I src/Way -as Way -compile ListNat
-	coqtop.opt -I src/Way -as Way -compile Atom
-	coqtop.opt -I src/Way -as Way -compile Preterm
-	coqtop.opt -I src/Way -as Way -compile Context
-	coqtop.opt -I src/Way -as Way -compile FreeVariables
-	coqtop.opt -I src/Way -as Way -compile StaleAtoms
-	coqtop.opt -I src/Way -as Way -compile Relation
-	coqtop.opt -I src/Way -as Way -compile Open
-	coqtop.opt -I src/Way -as Way -compile Term
-	coqtop.opt -I src/Way -as Way -compile Beta
-	coqtop.opt -I src/Way -as Way -compile Conversion
-	coqtop.opt -I src/Way -as Way -compile Subtyping
-	coqtop.opt -I src/Way -as Way -compile Typing
-	coqtop.opt -I src/Way -as Way -compile Repl
+include */build.mk
 
-tests: check-metatheory infrastructure-tests
+all: $(ALL)
 
-check-metatheory: compile
-	coqchk.opt -R src '' Way.Repl
+.PHONY: test
+test: $(TEST)
 
-repl:
-	rlwrap -pGREEN coqtop.opt -R src '' -require Repl
+.PHONY: continuous-integration
+continuous-integration: test
 
+.PHONY: clean
 clean:
-	find src -type f '(' -name '*.glob' -o -name '*.vo' ')' -exec rm '{}' ';'
+	-rm -r build
+
+build:
+	mkdir -p build
+
+$(ALL): | build

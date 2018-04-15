@@ -1,9 +1,5 @@
-# Coq
-*.glob
-*.vo
-
-# From infrastructure
-bin
+# Build intermediates
+build
 
 # Vagrant
 .vagrant/

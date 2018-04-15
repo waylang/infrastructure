@@ -1,0 +1,43 @@
+#! /bin/bash
+# vim: filetype=sh
+
+# Copyright (C) 2016-2018 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+set -e -u -o pipefail
+set -x
+
+export PROJECT_DIR="${PROJECT_DIR:-$(pwd)}"
+
+cd "$PROJECT_DIR"
+
+sudo apt-get install -y \
+  coq \
+  curl \
+  jq \
+  texlive \
+  texlive-latex-extra \
+  texlive-math-extra
+
+curl -sL -o /tmp/bats-v0.4.0.tar.gz \
+  'https://github.com/sstephenson/bats/archive/v0.4.0.tar.gz'
+
+sha256sum -c - <<'EOF'
+480d8d64f1681eee78d1002527f3f06e1ac01e173b761bc73d0cf33f4dc1d8d7  /tmp/bats-v0.4.0.tar.gz
+EOF
+
+sudo tar -C /opt -xzf /tmp/bats-v0.4.0.tar.gz
+
+sudo tee /etc/profile.d/way.sh <<EOF
+export PATH="\$PATH:$PROJECT_DIR/infrastructure/bin"
+export PATH="\$PATH:/opt/bats-0.4.0/bin"
+EOF

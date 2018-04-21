@@ -71,5 +71,5 @@ export -f has_vim_modeline
   -exec bash -c 'has_current_end_year "$0"' '{}' ';' \
   -exec bash -c 'has_gpl_boilerplate "$0"' '{}' ';' \
   -exec bash -c 'has_vim_modeline "$0"' '{}' ';' \
-  -print &> /dev/null | \
+  -print 2>&1 >/dev/null | \
 grep .

@@ -1,4 +1,6 @@
-# vim: filetype=make
+#! /bin/bash
+# vim: filetype=sh
+
 # Copyright (C) 2016-2018 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
@@ -11,31 +13,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-SHELL := /bin/bash
+set -e -u -o pipefail
 
-BUILD ?= build
-ALL :=
-TEST :=
-CLEAN :=
+ROOT="$(cd $(dirname "${BASH_SOURCE[0]}")/../..; pwd)"
+VERSION=$(provisioning-version)
 
-.PHONY: all
-all:
+pull-or-build-docker-development-image
 
-include */build.mk
-
-all: $(ALL)
-
-.PHONY: test
-test: $(TEST)
-
-.PHONY: continuous-integration
-continuous-integration: test
-
-.PHONY: clean
-clean: $(CLEAN)
-	-rm -r $(BUILD)
-
-$(BUILD):
-	mkdir -p $(BUILD)
-
-$(ALL): | $(BUILD)
+docker run -it --rm --name way -v "$ROOT:/way" "waylang/development:$VERSION" \
+  bash -l -c 'cd /way && export BUILD=~/build && "$@"' -- "$@"

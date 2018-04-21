@@ -29,6 +29,14 @@
   type release-to-github
 }
 
+@test 'make is executable' {
+  type make
+}
+
+@test 'sha256sum is executable' {
+  type sha256sum
+}
+
 @test 'version is a file' {
   test -f version
 }

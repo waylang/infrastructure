@@ -16,25 +16,25 @@
 set -e -u -o pipefail
 set -x
 
-sudo apt-get update
-sudo apt-get upgrade -y
-
-sudo apt-get install -y software-properties-common
-sudo add-apt-repository -y ppa:git-core
-sudo apt-get update
-
 . '/vagrant/infrastructure/provisioning/common'
 
-sudo apt-get install -y \
+# https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo apt-key fingerprint 0EBFCD88 | fgrep -q 'Docker Release (CE deb)'
+sudo add-apt-repository \
+ "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+sudo apt-get update -y
+
+sudo apt-get install -y --no-install-recommends \
   bash-completion \
   build-essential \
+  docker-ce \
   dstat \
-  git \
   iftop \
   iotop \
   iperf \
   lsof \
-  make \
   man-db \
   mlocate \
   nano \
@@ -46,6 +46,8 @@ sudo apt-get install -y \
   vim-nox-py2 \
   wget \
   zip
+
+sudo usermod -aG docker "$USER"
 
 # Color prompts
 sed -i 's|#force_color|force_color|' "$HOME/.bashrc"

@@ -1,5 +1,4 @@
-#! /bin/bash
-# vim: filetype=sh
+# vim: filetype=dockerfile
 
 # Copyright (C) 2016-2018 Philip H. Smith
 
@@ -13,7 +12,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-set -e -u -o pipefail
-set -x
-
-. "$TRAVIS_BUILD_DIR/infrastructure/provisioning/common"
+FROM ubuntu:16.04
+COPY common docker /
+RUN chmod +x /docker && \
+    /docker && \
+    rm /common /docker
+USER way

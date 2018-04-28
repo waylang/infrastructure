@@ -1,4 +1,5 @@
-# vim: filetype=make
+# vim: filetype=dockerignore
+
 # Copyright (C) 2016-2018 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
@@ -11,31 +12,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-SHELL := /bin/bash
-
-BUILD ?= build
-ALL :=
-TEST :=
-CLEAN :=
-
-.PHONY: all
-all:
-
-include */build.mk
-
-all: $(ALL)
-
-.PHONY: test
-test: $(TEST)
-
-.PHONY: continuous-integration
-continuous-integration: test
-
-.PHONY: clean
-clean: $(CLEAN)
-	-rm -r $(BUILD)
-
-$(BUILD):
-	mkdir -p $(BUILD)
-
-$(ALL): | $(BUILD)
+*
+!common
+!docker

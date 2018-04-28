@@ -12,8 +12,8 @@
 # GNU General Public License for more details.
 
 COQ_SRCS := $(wildcard metatheory/Way/*.v)
-COQ_DEPS := $(patsubst metatheory/Way/%.v,build/Way/%.d,$(COQ_SRCS))
-COQ_OBJS := $(patsubst metatheory/Way/%.v,build/Way/%.vo,$(COQ_SRCS))
+COQ_DEPS := $(patsubst metatheory/Way/%.v,$(BUILD)/Way/%.d,$(COQ_SRCS))
+COQ_OBJS := $(patsubst metatheory/Way/%.v,$(BUILD)/Way/%.vo,$(COQ_SRCS))
 
 ALL += $(COQ_OBJS)
 
@@ -21,23 +21,23 @@ TEST += verify-metatheory
 
 .PHONY: verify-metatheory
 verify-metatheory: $(COQ_OBJS)
-	coqchk.opt -R build '' Way.Repl
+	coqchk.opt -R $(BUILD) '' Way.Repl
 
 .PHONY: coq-repl
 coq-repl: $(COQ_OBJS)
-	rlwrap -pGREEN coqtop.opt -R build '' -require Repl
+	rlwrap -pGREEN coqtop.opt -R $(BUILD) '' -require Repl
 
-build/Way: | build
-	mkdir -p build/Way
+$(BUILD)/Way: | $(BUILD)
+	mkdir -p $(BUILD)/Way
 
-build/Way/%.d: metatheory/Way/%.v | build/Way
-	coqdep -I metatheory/Way -as Way $< | sed 's|metatheory|build|g' > $@
+$(BUILD)/Way/%.d: metatheory/Way/%.v | $(BUILD)/Way
+	coqdep -I metatheory/Way -as Way $< | sed 's|metatheory|$(BUILD)|g' > $@
 
 include $(COQ_DEPS)
 
 # coqc is simply unable to build files in a separate directory, so copy over the source
-build/Way/%.v: metatheory/Way/%.v | build/Way
+$(BUILD)/Way/%.v: metatheory/Way/%.v | $(BUILD)/Way
 	cp $< $@
 
-build/Way/%.vo: build/Way/%.v
-	coqc -opt -noglob -I build/Way -as Way $<
+$(BUILD)/Way/%.vo: $(BUILD)/Way/%.v
+	coqc -opt -noglob -I $(BUILD)/Way -as Way $<

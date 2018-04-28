@@ -11,7 +11,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-ALL += build/way-the-definitive-guide.pdf
+ALL += $(BUILD)/way-the-definitive-guide.pdf
 
 build/way-the-definitive-guide.pdf:
 	# Twice to build the table of contents, http://stackoverflow.com/q/3863630/580412

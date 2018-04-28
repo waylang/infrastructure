@@ -11,8 +11,42 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+ALL += \
+  $(BUILD)/infrastructure/docker-development-image \
+  $(BUILD)/infrastructure/provisioning-version
+
 TEST += infrastructure-test
+
+CLEAN += infrastructure-clean
+
+PROVISIONING_SRCS := $(shell find infrastructure/provisioning -type f)
 
 .PHONY: infrastructure-test
 infrastructure-test:
 	bats infrastructure/test.bats
+
+$(BUILD)/infrastructure: | $(BUILD)
+	mkdir -p $(BUILD)/infrastructure
+
+$(BUILD)/infrastructure/provisioning-version: \
+    $(PROVISIONING_SRCS) \
+    | $(BUILD)/infrastructure
+	provisioning-version > $@
+
+$(BUILD)/infrastructure/docker-development-image: \
+    $(BUILD)/infrastructure/provisioning-version \
+    $(PROVISIONING_SRCS) \
+    | $(BUILD)/infrastructure
+	pull-or-build-docker-development-image
+	touch $@
+
+.PHONY: waylang/development
+waylang/development: $(BUILD)/infrastructure/docker-development-image
+
+.PHONY: infrastructure-clean
+infrastructure-clean:
+	docker image ls waylang/development \
+	| egrep ^waylang/development \
+	| awk '{print $$1":"$$2}' \
+	| xargs -r docker image rm -f
+	docker image prune -f

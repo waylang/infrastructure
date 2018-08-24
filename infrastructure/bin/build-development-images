@@ -1,0 +1,317 @@
+#! /bin/bash
+# vim: set fenc=utf-8 ff=unix sts=2 sw=2 et ft=sh :
+
+# Copyright (C) 2016-2019 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+set -x -e -u -o pipefail
+
+if (( $# == 0 ))
+then
+  echo 'Error: build directory path required' 1>&2
+  exit 1
+fi
+
+BUILD=$1
+shift 1
+
+ROOT=$(cd $(dirname "${BASH_SOURCE[0]}")/../..; pwd)
+OUT=$BUILD/infrastructure
+PROVISIONING_VERSION=$(provisioning-version)
+IMAGE="$OUT/box.raw"
+MOUNT=$(mktemp -d)
+MULTISTRAP_CONF=$(mktemp)
+
+VMDK_CAPACITY_BYTES=$(( 16 * 2 ** 30 ))
+
+qemu-img create -f raw "$IMAGE" "$VMDK_CAPACITY_BYTES"
+parted -s "$IMAGE" mklabel msdos
+parted -s "$IMAGE" mkpart primary 0% 100%
+parted -s "$IMAGE" set 1 boot on
+
+function unkpartx { sudo kpartx -dvs "$IMAGE"; }
+PARTITION="/dev/mapper/$(sudo kpartx -avs "$IMAGE" | awk '{print $3}')"
+trap unkpartx EXIT
+
+sudo mkfs.ext4 -F "$PARTITION"
+
+function unmount { sudo umount "$MOUNT"; }
+sudo mount "$PARTITION" "$MOUNT"
+trap 'unmount; unkpartx' EXIT
+
+UUID=$(sudo blkid -c /dev/null -o value -s UUID "$PARTITION")
+sudo mkdir -p "$MOUNT/dev" "$MOUNT/proc" "$MOUNT/sys"
+
+function unmountgrub {
+  sudo umount "$MOUNT/sys"
+  sudo umount "$MOUNT/proc"
+  sudo umount "$MOUNT/dev/pts"
+  sudo umount "$MOUNT/dev"
+}
+
+sudo mount /dev -t devfs -o bind "$MOUNT/dev"
+sudo mount /dev/pts -t devpts -o bind "$MOUNT/dev/pts"
+sudo mount /proc -t proc -o bind "$MOUNT/proc"
+sudo mount /sys -t sysfs -o bind "$MOUNT/sys"
+trap 'unmountgrub; unmount; unkpartx' EXIT
+
+# We need jessie for coq 8.4
+# noauth must be true for docker
+cat > "$MULTISTRAP_CONF" <<EOF
+[General]
+aptdefaultrelease=stable
+arch=amd64
+cleanup=true
+directory=$MOUNT
+explicitsuite=true
+noauth=true
+bootstrap=Debian Backports Jessie Docker
+aptsources=Debian Backports Jessie Docker
+
+[Debian]
+packages=$(echo \
+  apt \
+  apt-transport-https \
+  bash-completion \
+  build-essential \
+  ca-certificates \
+  curl \
+  dbus \
+  dstat \
+  grub-pc \
+  iftop \
+  init \
+  iotop \
+  iperf \
+  jq \
+  kpartx \
+  linux-headers-amd64 \
+  linux-image-amd64 \
+  lmodern \
+  locales \
+  lsof \
+  make \
+  man-db \
+  mlocate \
+  multistrap \
+  nano \
+  openssh-server \
+  parted \
+  qemu-utils \
+  rlwrap \
+  rsync \
+  strace \
+  sudo \
+  sysstat \
+  texlive \
+  tmux \
+  unzip \
+  vim \
+  wget \
+  zip \
+)
+source=http://httpredir.debian.org/debian
+keyring=debian-archive-keyring
+suite=stable
+omitdebsrc=false
+components=main
+
+[Backports]
+packages=$(echo \
+  git \
+  git-man \
+)
+source=http://httpredir.debian.org/debian
+keyring=debian-archive-keyring
+suite=stretch-backports
+components=main
+
+[Jessie]
+packages=$(echo \
+  coq-theories \
+  coq \
+  libcoq-ocaml \
+  liblablgtk2-ocaml \
+  ocaml-base-nox \
+)
+source=http://httpredir.debian.org/debian
+keyring=debian-archive-keyring
+suite=jessie
+components=main
+
+[Docker]
+packages=$(echo \
+  docker-ce \
+)
+source=https://download.docker.com/linux/debian
+suite=stretch
+components=stable
+omitdebsrc=true
+EOF
+
+# Fix libpaper1 (for texlive) before multistraping
+sudo mkdir -p "${MOUNT}/etc"
+sudo tee "${MOUNT}/etc/papersize" <<'EOF'
+a4
+EOF
+
+sudo multistrap --file "$MULTISTRAP_CONF"
+
+# Generate locales
+sudo chroot "$MOUNT" tee -a /etc/locale.gen <<'EOF'
+en_US.UTF-8 UTF-8
+EOF
+
+sudo chroot "$MOUNT" locale-gen
+
+# Create /etc/fstab
+sudo chroot "$MOUNT" tee /etc/fstab <<EOF
+proc /proc proc defaults 0 0
+UUID=$UUID / ext4 errors=remount-ro 0 1
+EOF
+
+# Create /etc/hosts
+sudo chroot "$MOUNT" tee /etc/hosts <<'EOF'
+127.0.0.1	localhost
+127.0.1.1	way	way
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+EOF
+
+# Disable root logins
+sudo chroot "$MOUNT" passwd -dl root
+
+# Use systemd for DHCP
+sudo chroot "$MOUNT" tee /etc/systemd/network/99-dhcp.network <<'EOF'
+[Match]
+Name=e*
+
+[Network]
+DHCP=yes
+EOF
+
+sudo chroot "$MOUNT" systemctl enable systemd-networkd
+
+# Use systemd for DNS
+sudo chroot "$MOUNT" systemctl enable systemd-resolved
+sudo chroot "$MOUNT" ln -sfT /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+# Set hostname
+echo way | sudo chroot "$MOUNT" tee /etc/hostname
+
+# No DNS for ssh logins
+echo 'UseDNS no' | sudo chroot "$MOUNT" tee -a /etc/ssh/sshd_config
+
+# Disable password logins
+echo 'PasswordAuthentication no' | sudo chroot "$MOUNT" tee -a /etc/ssh/sshd_config
+
+# Reduce grub timeout
+sudo chroot "$MOUNT" sed -i s/GRUB_TIMEOUT=5/GRUB_TIMEOUT=1/ /etc/default/grub
+
+# Enable serial console
+sudo chroot "$MOUNT" tee -a /etc/default/grub <<'EOF'
+
+# Enable serial console
+GRUB_CMDLINE_LINUX_DEFAULT="console=tty0 console=tty1 console=ttyS0,38400n8"
+GRUB_TERMINAL="serial gfxterm"
+GRUB_SERIAL_COMMAND="serial --speed=38400 --unit=0 --parity=no --stop=1"
+EOF
+
+# Create user
+sudo chroot "$MOUNT" useradd \
+  --create-home \
+  --groups sudo,plugdev,docker \
+  --shell /bin/bash \
+  --uid 1000 \
+  way
+echo way:way | sudo chpasswd -R "$MOUNT"
+
+sudo chroot "$MOUNT" mkdir -p /home/way/.ssh
+sudo chroot "$MOUNT" chmod 700 /home/way/.ssh
+sudo chroot "$MOUNT" tee /home/way/.ssh/authorized_keys <<'EOF'
+ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key
+EOF
+sudo chroot "$MOUNT" chmod 600 /home/way/.ssh/authorized_keys
+sudo chroot "$MOUNT" chown -R way:way /home/way/.ssh
+
+sudo chroot "$MOUNT" tee /etc/sudoers.d/way <<'EOF'
+way ALL=(ALL) NOPASSWD:ALL
+EOF
+sudo chroot "$MOUNT" chmod 0440 /etc/sudoers.d/way
+
+# Color prompts
+sudo chroot "$MOUNT" sed -i 's|#force_color|force_color|' /home/way/.bashrc
+
+# Softlink to code
+sudo chroot "$MOUNT"  ln -sfT /way/src /home/way/src
+
+# Clean up
+sudo chroot "$MOUNT" apt-get clean
+
+# Configure grub
+sudo chroot "$MOUNT" usr/sbin/update-initramfs -u
+
+sudo chroot "$MOUNT" update-grub
+sudo chroot "$MOUNT" grub-install /dev/loop0
+
+# Install bats 0.4.0
+curl -sL -o /tmp/bats-v0.4.0.tar.gz \
+  'https://github.com/sstephenson/bats/archive/v0.4.0.tar.gz'
+
+sha256sum -c - <<'EOF'
+480d8d64f1681eee78d1002527f3f06e1ac01e173b761bc73d0cf33f4dc1d8d7  /tmp/bats-v0.4.0.tar.gz
+EOF
+
+sudo tar -C "$MOUNT/opt" -xzf /tmp/bats-v0.4.0.tar.gz
+
+rm /tmp/bats-v0.4.0.tar.gz
+
+sudo chroot "$MOUNT" tee /etc/profile.d/way.sh <<'EOF'
+export PATH="$PATH:/sbin"
+export PATH="$PATH:/way/src/infrastructure/bin"
+export PATH="$PATH:/opt/bats-0.4.0/bin"
+EOF
+
+trap 'unmount; unkpartx' EXIT
+unmountgrub
+
+# Capture docker image
+# sudo tar -C "$MOUNT" -c . | docker import - "waylang/development:$PROVISIONING_VERSION"
+
+trap - EXIT
+unmount
+unkpartx
+
+sudo chmod +w "$IMAGE"
+sudo chown $USER:$USER "$IMAGE"
+
+mkdir -p "$OUT/box"
+sudo qemu-img convert -f raw -O vmdk "$IMAGE" "$OUT/box/box.vmdk"
+
+rm "$IMAGE"
+
+sed \
+  -e "s|%VMDK_SIZE_BYTES%|$(stat -c %s "$OUT/box/box.vmdk")|g" \
+  -e "s|%VMDK_CAPACITY_BYTES%|$VMDK_CAPACITY_BYTES|g" \
+  "$ROOT/infrastructure/provisioning/box.ovf.template" \
+  > "$OUT/box/box.ovf"
+
+cp \
+  "$ROOT/infrastructure/provisioning/Vagrantfile" \
+  "$OUT/box"
+
+echo '{ "provider": "virtualbox" }' > "$OUT/box/metadata.json"
+
+tar -C "$OUT/box" -czf "$OUT/waylang-development.box" .

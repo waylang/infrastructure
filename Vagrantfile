@@ -12,53 +12,29 @@
 # GNU General Public License for more details.
 
 Vagrant.configure('2') do |config|
-  if Vagrant.has_plugin?('vagrant-cachier')
-    config.cache.scope = :box
-    config.cache.synced_folder_opts = {
-      owner: '_apt',
-      group: '_apt',
-      mount_options: %w(dmode=777 fmode=666)
-    }
+  unless Vagrant.has_plugin?('vagrant-vbguest')
+    raise Vagrant::Errors::PluginNotInstalled.new name: 'vagrant-vbguest'
   end
 
   config.vm.define 'way'
-  config.vm.box = 'ubuntu/xenial64'
+  config.vm.box = 'debian/stretch64'
   config.vm.hostname = 'way'
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder '.', '/way/src', type: 'virtualbox'
   config.ssh.forward_agent = true
+  config.vm.post_up_message = nil
 
   config.vm.provider 'virtualbox' do |provider, _override|
     provider.name = 'way'
-    provider.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
   end
 
   if File.exist? "#{ENV['HOME']}/.gitconfig"
     config.vm.provision :file, source: '~/.gitconfig', destination: '.gitconfig'
   end
 
-  if File.exist? "#{ENV['HOME']}/.vimrc"
-    config.vm.provision :file, source: '~/.vimrc', destination: '.vimrc'
-  end
-
-  if Dir.exist? "#{ENV['HOME']}/.vim"
-    config.vm.provision :shell, privileged: false, inline: 'rm -rf ~/.vim'
-    config.vm.provision :file, source: '~/.vim', destination: '.vim'
-  end
-
-  if File.exist? "#{ENV['HOME']}/.tmux.conf"
-    config.vm.provision :file, source: '~/.tmux.conf', destination: '.tmux.conf'
-  end
-
-  if Dir.exist? "#{ENV['HOME']}/.tmux"
-    config.vm.provision :shell, privileged: false, inline: 'rm -rf ~/.tmux'
-    config.vm.provision :file, source: '~/.tmux', destination: '.tmux'
-  end
-
   config.vm.provision :shell do |shell|
     shell.privileged = false
     shell.keep_color = true
     shell.path = 'infrastructure/provisioning/vagrant'
-    shell.env = {
-      PROJECT_DIR: '/vagrant'
-    }
   end
 end

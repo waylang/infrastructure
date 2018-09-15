@@ -12,7 +12,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-FROM ubuntu:16.04
+FROM debian:stretch
 COPY common docker /
 RUN chmod +x /docker && \
     /docker && \

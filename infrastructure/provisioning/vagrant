@@ -16,13 +16,12 @@
 set -e -u -o pipefail
 set -x
 
-. '/vagrant/infrastructure/provisioning/common'
+. /way/src/infrastructure/provisioning/common
 
-# https://docs.docker.com/install/linux/docker-ce/ubuntu/#set-up-the-repository
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo apt-key fingerprint 0EBFCD88 | fgrep -q 'Docker Release (CE deb)'
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+sudo apt-key fingerprint 0EBFCD88
 sudo add-apt-repository \
- "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+ "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
 
 sudo apt-get update -y
 
@@ -43,7 +42,7 @@ sudo apt-get install -y --no-install-recommends \
   sysstat \
   tmux \
   unzip \
-  vim-nox-py2 \
+  vim \
   wget \
   zip
 
@@ -56,4 +55,7 @@ sed -i 's|#force_color|force_color|' "$HOME/.bashrc"
 sudo timedatectl set-timezone UTC
 
 # Softlink to code
-sudo ln -sfT /vagrant "$HOME/way"
+sudo ln -sfT /way/src "$HOME/src"
+
+sudo apt-get autoremove
+sudo apt-get clean

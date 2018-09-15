@@ -13,7 +13,7 @@
 
 SHELL := /bin/bash
 
-BUILD ?= build
+BUILD ?= $(HOME)/build
 ALL :=
 TEST :=
 CLEAN :=

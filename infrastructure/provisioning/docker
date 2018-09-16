@@ -29,7 +29,4 @@ EOF
 
 touch ~way/.sudo_as_admin_successful
 
-export PROJECT_DIR=/way
-mkdir "$PROJECT_DIR"
-
 . '/common'

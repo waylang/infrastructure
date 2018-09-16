@@ -20,5 +20,11 @@ VERSION=$(provisioning-version)
 
 pull-or-build-docker-development-image
 
-docker run -it --rm --name way -v "$ROOT:/way" "waylang/development:$VERSION" \
-  bash -l -c 'cd /way && export BUILD=~/build && "$@"' -- "$@"
+docker run \
+  --interactive \
+  --tty \
+  --rm \
+  --name way \
+  --volume "$ROOT:/way/src" \
+  "waylang/development:$VERSION" \
+  bash -l -c 'cd /way/src && "$@"' -- "$@"

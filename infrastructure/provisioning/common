@@ -16,9 +16,16 @@
 set -e -u -o pipefail
 set -x
 
-export PROJECT_DIR="${PROJECT_DIR:-$(pwd)}"
+# For coq 8.4
+sudo tee /etc/apt/sources.list.d/jessie.list <<'EOF'
+deb http://deb.debian.org/debian jessie main
+deb-src http://deb.debian.org/debian jessie main
+EOF
 
-cd "$PROJECT_DIR"
+sudo tee /etc/apt/sources.list.d/backports.list <<'EOF'
+deb http://ftp.debian.org/debian stretch-backports main
+deb-src http://ftp.debian.org/debian stretch-backports main
+EOF
 
 sudo apt-get update -y
 sudo apt-get upgrade -y
@@ -26,19 +33,28 @@ sudo apt-get upgrade -y
 sudo apt-get install -y --no-install-recommends \
   apt-transport-https \
   ca-certificates \
+  curl \
+  gnupg2 \
   software-properties-common
 
-sudo add-apt-repository -y ppa:git-core
 sudo apt-get update -y
 
 sudo apt-get install -y --no-install-recommends \
-  coq \
-  curl \
-  git \
   jq \
   lmodern \
   make \
   texlive
+
+sudo apt-get install -y --no-install-recommends \
+  -t stretch-backports \
+  git
+
+sudo apt-get install -y --no-install-recommends \
+  coq-theories=8.4pl4dfsg-1 \
+  coq=8.4pl4dfsg-1 \
+  libcoq-ocaml=8.4pl4dfsg-1 \
+  liblablgtk2-ocaml=2.16.0+dfsg-1 \
+  ocaml-base-nox=4.01.0-5
 
 sudo apt-get clean
 sudo apt-get autoclean
@@ -54,7 +70,8 @@ sudo tar -C /opt -xzf /tmp/bats-v0.4.0.tar.gz
 
 rm /tmp/bats-v0.4.0.tar.gz
 
-sudo tee /etc/profile.d/way.sh <<EOF
-export PATH="\$PATH:$PROJECT_DIR/infrastructure/bin"
-export PATH="\$PATH:/opt/bats-0.4.0/bin"
+sudo tee /etc/profile.d/way.sh <<'EOF'
+export PATH="$PATH:/sbin"
+export PATH="$PATH:/way/src/infrastructure/bin"
+export PATH="$PATH:/opt/bats-0.4.0/bin"
 EOF

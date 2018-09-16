@@ -13,7 +13,7 @@
 
 ALL += $(BUILD)/way-the-definitive-guide.pdf
 
-build/way-the-definitive-guide.pdf:
+$(BUILD)/way-the-definitive-guide.pdf: | $(BUILD)
 	# Twice to build the table of contents, http://stackoverflow.com/q/3863630/580412
-	pdflatex -output-directory build -jobname way-the-definitive-guide book/book.tex
-	pdflatex -output-directory build -jobname way-the-definitive-guide book/book.tex
+	pdflatex -output-directory $(BUILD) -jobname way-the-definitive-guide book/book.tex
+	pdflatex -output-directory $(BUILD) -jobname way-the-definitive-guide book/book.tex

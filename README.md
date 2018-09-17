@@ -1,5 +1,5 @@
 <!--
-  vim: filetype=markdown
+  vim: fenc=utf-8 ff=unix sts=2 sw=2 et ft=markdown
 -->
 
 # Way

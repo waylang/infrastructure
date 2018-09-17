@@ -43,7 +43,7 @@ function has_gpl_boilerplate {
 }
 
 function has_vim_modeline {
-  if ! egrep -q 'vim: ''fenc=utf-8 ff=unix .* ft=' "$1"
+  if ! egrep -q ' vim: ''set fenc=utf-8 ff=unix .* ft=' "$1"
   then
     >&2 echo "Missing vim modeline in $1"
     return 1

@@ -1,5 +1,5 @@
 (*
-  vim: filetype=coq
+  vim: fenc=utf-8 ff=unix sts=2 sw=2 et ft=coq
 *)
 (*
 Copyright (C) 2016-2018 Philip H. Smith

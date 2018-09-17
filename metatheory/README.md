@@ -1,5 +1,5 @@
 <!--
-  vim: fenc=utf-8 ff=unix sts=2 sw=2 et ft=markdown
+  vim: set fenc=utf-8 ff=unix sts=2 sw=2 et ft=markdown
 -->
 
 [![Build Status][build-status-badge]][build-status-link]

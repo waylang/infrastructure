@@ -1,4 +1,4 @@
-# vim: fenc=utf-8 ff=unix sts=2 sw=2 et ft=ruby
+# vim: set fenc=utf-8 ff=unix sts=2 sw=2 et ft=ruby
 # Copyright (C) 2016-2018 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify

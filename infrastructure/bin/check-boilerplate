@@ -1,5 +1,5 @@
 #! /bin/bash
-# vim: set fenc=utf-8 ff=unix sts=2 sw=2 et ft=sh
+# vim: set fenc=utf-8 ff=unix sts=2 sw=2 et ft=sh :
 
 # Copyright (C) 2016-2018 Philip H. Smith
 
@@ -43,7 +43,7 @@ function has_gpl_boilerplate {
 }
 
 function has_vim_modeline {
-  if ! egrep -q ' vim: ''set fenc=utf-8 ff=unix .* ft=' "$1"
+  if ! egrep -q 'vim: ''set fenc=utf-8 ff=unix .* ft=.* :' "$1"
   then
     >&2 echo "Missing vim modeline in $1"
     return 1

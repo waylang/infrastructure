@@ -1,7 +1,7 @@
 #! /usr/bin/env bats
 # vim: set fenc=utf-8 ff=unix sts=2 sw=2 et ft=sh :
 
-# Copyright (C) 2016-2018 Philip H. Smith
+# Copyright (C) 2016-2019 Philip H. Smith
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

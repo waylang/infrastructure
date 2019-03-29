@@ -12,12 +12,21 @@
 # GNU General Public License for more details.
 
 Vagrant.configure('2') do |config|
-  config.vm.define 'way'
-  config.vm.box = 'waylang/development'
-  config.vm.box_version = '0.0.1'
-  config.vm.box_check_update = false
+  config.vm.base_mac = '0800278dc04d'
 
-  if File.exist? "#{ENV['HOME']}/.gitconfig"
-    config.vm.provision :file, source: '~/.gitconfig', destination: '.gitconfig'
+  unless Vagrant.has_plugin?('vagrant-vbguest')
+    raise Vagrant::Errors::PluginNotInstalled.new name: 'vagrant-vbguest'
+  end
+
+  config.vm.define 'way'
+  config.vm.hostname = 'way'
+  config.vm.post_up_message = nil
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder '.', '/way/src', type: 'virtualbox'
+  config.ssh.forward_agent = true
+  config.ssh.username = 'way'
+
+  config.vm.provider 'virtualbox' do |provider, _override|
+    provider.name = 'way'
   end
 end

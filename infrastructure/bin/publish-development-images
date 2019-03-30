@@ -1,0 +1,196 @@
+#! /bin/bash
+# vim: set fenc=utf-8 ff=unix sts=2 sw=2 et ft=sh :
+
+# Copyright (C) 2016-2019 Philip H. Smith
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+set -e -u -o pipefail
+
+cd $(dirname "${BASH_SOURCE[0]}")/../..
+
+function help {
+  cat <<EOF
+Usage: $0 [-h|--help] [build-directory]
+
+Push docker and vagrant development images to their respective hosting services.
+
+The build directory defaults to ~/build
+EOF
+}
+
+function die {
+  echo "Error: $*" 1>&2
+  help 1>&2
+  exit 1
+}
+
+(( $# <= 1 )) || die "Unexpected arguments $*"
+
+if (( $# == 0 ))
+then
+  BUILD=~/build
+elif [[ $1 == -h || $1 == --help ]]
+then
+  help
+  exit 0
+else
+  BUILD=$1
+fi
+
+OUT=$BUILD/infrastructure
+TARBALL=$OUT/waylang-development.tar.gz
+BOX_PATH=$OUT/waylang-development.box
+INFRASTRUCTURE_COMMIT=$(< "$OUT/infrastructure-commit")
+INFRASTRUCTURE_VERSION=$(< "$OUT/infrastructure-version")
+
+echo "Found version $INFRASTRUCTURE_VERSION ($INFRASTRUCTURE_COMMIT)"
+
+docker login
+
+VAGRANT_API=https://app.vagrantup.com/api/v1
+VAGRANT_CLOUD_TOKEN_PATH="$HOME/.vagrant-cloud-token"
+
+function call-vagrant-api {
+  local url="$VAGRANT_API/$1"
+
+  shift 1
+
+  curl -sf \
+    -H "Authorization: Bearer $(< "$VAGRANT_CLOUD_TOKEN_PATH")" \
+    "$url" \
+    "$@"
+}
+
+# Fake a similar, insecure login function for vagrant cloud
+# https://www.vagrantup.com/docs/vagrant-cloud/api.html
+function vagrant-login {
+  local username
+  local password
+  local totp
+  local response
+
+  if [[ -f $VAGRANT_CLOUD_TOKEN_PATH ]]
+  then
+    echo Authenticating with existing credentials...
+
+    if call-vagrant-api authenticate -o /dev/null
+    then
+      echo Login Succeeded
+      return 0
+    else
+      rm "$VAGRANT_CLOUD_TOKEN_PATH"
+      echo Login failed
+    fi
+  fi
+
+  echo 'Login with your https://app.vagrantup.com/ ID'
+  read -p 'Username: ' username
+  read -p 'Password: ' -s password; echo
+  read -p 'Two-Factor Code: ' -s totp; echo
+
+  if response=$(jq --null-input \
+      --arg username "$username" \
+      --arg password "$password" \
+      --arg totp "$totp" \
+      '{
+        "token": "way publish-development-images token",
+        "two_factor": { "code": $totp },
+        "user": { "login": $username, "password": $password }
+      }' | \
+    curl -sf -H 'Content-Type: application/json' \
+      "$VAGRANT_API/authenticate" \
+      --data @-
+  )
+  then
+    jq -r .token <<<"$response" > "$VAGRANT_CLOUD_TOKEN_PATH"
+    echo 'Login Succeeded'
+  else
+    die 'Login Failed'
+  fi
+}
+
+vagrant-login
+
+function delete-local-docker-image {
+  docker image rm "waylang/development:$INFRASTRUCTURE_VERSION"
+}
+
+trap delete-local-docker-image EXIT
+
+gunzip -c "$TARBALL" | docker import - "waylang/development:$INFRASTRUCTURE_VERSION"
+docker push "waylang/development:$INFRASTRUCTURE_VERSION"
+delete-local-docker-image
+trap - EXIT
+
+# Now vagrant cloud
+
+if jq --null-input \
+    --arg version "$INFRASTRUCTURE_VERSION.0.0" \
+    --arg description "Built from commit $INFRASTRUCTURE_COMMIT" \
+    '{
+      "version": {
+        "version": $version,
+        "description": $description
+      }
+    }' | \
+  call-vagrant-api 'box/waylang/development/versions' \
+    -H 'Content-Type: application/json' \
+    --data @- \
+    -o /dev/null
+then
+  echo "Created box version $INFRASTRUCTURE_VERSION.0.0"
+else
+  die "Failed to created box version $INFRASTRUCTURE_VERSION.0.0"
+fi
+
+BOX_PREFIX=box/waylang/development/version/$INFRASTRUCTURE_VERSION.0.0
+
+if call-vagrant-api "$BOX_PREFIX/providers" \
+    -H 'Content-Type: application/json' \
+    --data '{ "provider": { "name": "virtualbox" } }' \
+    -o /dev/null
+then
+  echo 'Created virtualbox provider'
+else
+  die 'Failed to created virtualbox provider'
+fi
+
+if UPLOAD_PATH=$(
+    call-vagrant-api "$BOX_PREFIX/provider/virtualbox/upload" | \
+    jq -r .upload_path)
+then
+  echo 'Uploading...'
+else
+  die 'Failed to get upload url'
+fi
+
+if curl -f \
+  --progress-bar \
+  -H "Authorization: Bearer $(< "$VAGRANT_CLOUD_TOKEN_PATH")" \
+  -X PUT \
+  -o /dev/null \
+  --upload-file "$BOX_PATH" \
+  "$UPLOAD_PATH"
+then
+  echo 'Uploaded'
+else
+  die 'Failed to upload'
+fi
+
+if call-vagrant-api "$BOX_PREFIX/release" \
+    -X PUT \
+    -o /dev/null
+then
+  echo "Released version $INFRASTRUCTURE_VERSION.0.0"
+else
+  die 'Failed to release version'
+fi

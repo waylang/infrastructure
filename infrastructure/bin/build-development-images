@@ -94,6 +94,7 @@ packages=$(echo \
   iperf \
   jq \
   kpartx \
+  less \
   linux-headers-amd64 \
   linux-image-amd64 \
   lmodern \

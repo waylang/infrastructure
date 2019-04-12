@@ -13,25 +13,70 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-set -x -e -u -o pipefail
+set -e -u -o pipefail
+
+cd $(dirname "${BASH_SOURCE[0]}")/../..
+
+function help {
+  cat <<EOF
+Usage: $0 [-h|--help] [build-directory]
+
+Create docker and vagrant development images under the build directory.
+
+To accurately record the git version, the workspace must be clean.
+
+The build directory defaults to ~/build
+EOF
+}
+
+function die {
+  echo "Error: $*" 1>&2
+  help 1>&2
+  exit 1
+}
+
+(( $# <= 1 )) || die "Unexpected arguments $*"
 
 if (( $# == 0 ))
 then
-  echo 'Error: build directory path required' 1>&2
-  exit 1
+  BUILD=~/build
+elif [[ $1 == -h || $1 == --help ]]
+then
+  help
+  exit 0
+else
+  BUILD=$1
 fi
 
-BUILD=$1
-shift 1
+# Force it to recalculate status, for some reason the next line can otherwise fail
+git status &> /dev/null
 
-ROOT=$(cd $(dirname "${BASH_SOURCE[0]}")/../..; pwd)
+if ! git diff-index --quiet HEAD ./infrastructure
+then
+  die 'git work tree in ./infrastructure is dirty'
+fi
+
+set -x
+
 OUT=$BUILD/infrastructure
-PROVISIONING_VERSION=$(provisioning-version)
-IMAGE="$OUT/box.raw"
+IMAGE=$OUT/box.raw
+BOX_DIR=$OUT/box
+TARBALL=$OUT/waylang-development.tar.gz
+BOX=$OUT/waylang-development.box
 MOUNT=$(mktemp -d)
 MULTISTRAP_CONF=$(mktemp)
 
+# Vagrant demands (decimal) integers for semver.  So fine, 29+ bits of decimal
+# Prepend a 1 to preserve leading zeros
+INFRASTRUCTURE_COMMIT=$(git log -1 --format=%h ./infrastructure)
+INFRASTRUCTURE_VERSION=$(printf '1%09d\n' "0x$INFRASTRUCTURE_COMMIT")
+
 VMDK_CAPACITY_BYTES=$(( 16 * 2 ** 30 ))
+
+mkdir -p "$BOX_DIR"
+
+echo "$INFRASTRUCTURE_COMMIT" > "$OUT/infrastructure-commit"
+echo "$INFRASTRUCTURE_VERSION" > "$OUT/infrastructure-version"
 
 qemu-img create -f raw "$IMAGE" "$VMDK_CAPACITY_BYTES"
 parted -s "$IMAGE" mklabel msdos
@@ -94,6 +139,7 @@ packages=$(echo \
   iperf \
   jq \
   kpartx \
+  less \
   linux-headers-amd64 \
   linux-image-amd64 \
   lmodern \
@@ -250,12 +296,18 @@ sudo chroot "$MOUNT" tee /etc/sudoers.d/way <<'EOF'
 way ALL=(ALL) NOPASSWD:ALL
 EOF
 sudo chroot "$MOUNT" chmod 0440 /etc/sudoers.d/way
+sudo chroot "$MOUNT" touch /home/way/.sudo_as_admin_successful
+
+# Record infrastructure version
+sudo chroot "$MOUNT" tee /home/way/infrastructure-version <<EOF
+$INFRASTRUCTURE_VERSION $INFRASTRUCTURE_COMMIT
+EOF
 
 # Color prompts
 sudo chroot "$MOUNT" sed -i 's|#force_color|force_color|' /home/way/.bashrc
 
 # Softlink to code
-sudo chroot "$MOUNT"  ln -sfT /way/src /home/way/src
+sudo chroot "$MOUNT" ln -sfT /way/src /home/way/src
 
 # Clean up
 sudo chroot "$MOUNT" apt-get clean
@@ -287,31 +339,33 @@ EOF
 trap 'unmount; unkpartx' EXIT
 unmountgrub
 
-# Capture docker image
-# sudo tar -C "$MOUNT" -c . | docker import - "waylang/development:$PROVISIONING_VERSION"
+# Capture tarball suitable for docker import
+sudo tar -C "$MOUNT" -czf "$TARBALL" .
+sudo chown "$USER:$USER" "$TARBALL"
 
 trap - EXIT
 unmount
 unkpartx
 
 sudo chmod +w "$IMAGE"
-sudo chown $USER:$USER "$IMAGE"
+sudo chown "$USER:$USER" "$IMAGE"
 
-mkdir -p "$OUT/box"
-sudo qemu-img convert -f raw -O vmdk "$IMAGE" "$OUT/box/box.vmdk"
+sudo qemu-img convert -f raw -O vmdk "$IMAGE" "$BOX_DIR/box.vmdk"
+sudo chmod +w "$BOX_DIR/box.vmdk"
 
 rm "$IMAGE"
 
 sed \
-  -e "s|%VMDK_SIZE_BYTES%|$(stat -c %s "$OUT/box/box.vmdk")|g" \
+  -e "s|%VMDK_SIZE_BYTES%|$(stat -c %s "$BOX_DIR/box.vmdk")|g" \
   -e "s|%VMDK_CAPACITY_BYTES%|$VMDK_CAPACITY_BYTES|g" \
-  "$ROOT/infrastructure/provisioning/box.ovf.template" \
-  > "$OUT/box/box.ovf"
+  ./infrastructure/box.ovf.template \
+  > "$BOX_DIR/box.ovf"
 
 cp \
-  "$ROOT/infrastructure/provisioning/Vagrantfile" \
-  "$OUT/box"
+  ./infrastructure/Vagrantfile \
+  "$BOX_DIR"
 
-echo '{ "provider": "virtualbox" }' > "$OUT/box/metadata.json"
+echo '{ "provider": "virtualbox" }' > "$BOX_DIR/metadata.json"
 
-tar -C "$OUT/box" -czf "$OUT/waylang-development.box" .
+tar -C "$BOX_DIR" -czf "$BOX" .
+rm -rf "$BOX_DIR"

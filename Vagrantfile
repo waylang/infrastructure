@@ -14,7 +14,7 @@
 Vagrant.configure('2') do |config|
   config.vm.define 'way'
   config.vm.box = 'waylang/development'
-  config.vm.box_version = '0.0.1'
+  config.vm.box_version = '1124266860.0.0'
   config.vm.box_check_update = false
 
   if File.exist? "#{ENV['HOME']}/.gitconfig"

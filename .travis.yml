@@ -2,8 +2,16 @@ sudo: required
 services:
   - docker
 language: c
+env:
+  - PROVISIONING_VERSION: '1124266860'
+before_install:
+  - docker pull "waylang/development:$PROVISIONING_VERSION"
 script:
-  - date
-  - export PATH="$PATH:$TRAVIS_BUILD_DIR/infrastructure/bin"
-  - docker-run-development bash -c 'date; make continuous-integration'
-  - date
+  - "docker run \
+      --interactive \
+      --tty \
+      --volume \"$TRAVIS_BUILD_DIR:/way/src\" \
+      --workdir /way/src \
+      \"waylang/development:$PROVISIONING_VERSION\" \
+      bash -l -c \
+      'make continuous-integration'"
